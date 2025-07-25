@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup
 import html
 
 # --- STİL (CSS) ---
-st.set_page_config(page_title="Lezzet Defterim", layout="wide")
+st.set_page_config(page_title="Ceren'in Defteri", layout="wide")
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Quicksand:wght@400;500;600&display=swap');
@@ -102,7 +102,7 @@ def display_recipe_cards(df):
 # --- ANA UYGULAMA AKIŞI ---
 if 'recipe_to_edit_id' not in st.session_state: st.session_state.recipe_to_edit_id = None
 with st.sidebar:
-    st.markdown("<h1 style='font-size: 2.5rem; text-align: center;'>Lezzet Defterim</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='font-size: 2.5rem; text-align: center;'>Ceren'in Defteri</h1>", unsafe_allow_html=True)
     page = st.radio("Sayfa Seçimi", ["Tüm Tarifler", "Ne Pişirsem?"], label_visibility="hidden")
     st.markdown("---")
     with st.expander("📝 Yeni Bir Tarif Ekle", expanded=True):
