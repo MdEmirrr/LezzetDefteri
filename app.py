@@ -6,25 +6,11 @@ from datetime import datetime
 import requests
 from bs4 import BeautifulSoup
 import html
+from streamlit_option_menu import option_menu
 
 # --- STİL (CSS) ---
-st.set_page_config(page_title="Lezzet Defterim", layout="wide")
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Quicksand:wght@400;500;600&display=swap');
-body, .stApp { background-color: #FFFFFF !important; }
-.main .block-container { padding-top: 1rem !important; }
-h1 { font-family: 'Dancing Script', cursive !important; color: #2E8B57 !important; text-align: center; }
-h2, h3, h5 { font-family: 'Quicksand', sans-serif !important; color: #2F4F4F !important; }
-[data-testid="stSidebar"] { background-color: #F0FFF0; }
-.recipe-card { background-color: #FFFFFF; border: 1px solid #e9e9e9; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 2rem; overflow: hidden; }
-.card-image { width: 100%; height: 250px; object-fit: cover; }
-.card-body { padding: 1rem; }
-.card-body .category-badge { background-color: #D1E7DD; color: #0F5132; padding: 4px 10px; border-radius: 5px; font-size: 0.8rem; font-weight: 600; margin-top: 10px; display: inline-block; }
-div[data-testid="stExpander"] > summary p { color: #2F4F4F !important; font-weight: 600; }
-div[data-testid="stExpander"] div[data-testid="stExpanderDetails"] * { color: #333 !important; }
-</style>
-""", unsafe_allow_html=True)
+st.set_page_config(page_title="Ceren'in Defteri", layout="wide")
+st.markdown("""<style>@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Quicksand:wght@400;500;600&display=swap');body, .stApp { background-color: #FFFFFF !important; }.main .block-container { padding-top: 1rem !important; }h1 {font-family: 'Dancing Script', cursive !important;color: #2E8B57 !important;text-align: center;}h2, h3, h5 {font-family: 'Quicksand', sans-serif !important;color: #2F4F4F !important;}.recipe-card {background-color: #FFFFFF;border: 1px solid #e9e9e9;border-radius: 15px;box-shadow: 0 4px 12px rgba(0,0,0,0.05);margin-bottom: 2rem;overflow: hidden;}.card-image {width: 100%;height: 250px;object-fit: cover;}.card-body { padding: 1rem; }.card-body .category-badge {background-color: #D1E7DD;color: #0F5132;padding: 4px 10px;border-radius: 5px;font-size: 0.8rem;font-weight: 600;margin-top: 10px; display: inline-block;}div[data-testid="stExpander"] > summary p {color: #2F4F4F !important;font-weight: 600;}div[data-testid="stExpander"] div[data-testid="stExpanderDetails"] * {color: #333 !important;}</style>""", unsafe_allow_html=True)
 
 # --- SABİT DEĞİŞKENLER ---
 TUM_KATEGORILER = sorted(["Aperatif", "Atıştırmalık", "Bakliyat", "Balık & Deniz Ürünleri", "Çorba", "Dolma", "Etli Yemek", "Glutensiz", "Hamurişi", "Kahvaltılık", "Kebap", "Kızartma", "Köfte", "Makarna", "Meze", "Pilav", "Pratik", "Salata", "Sandviç", "Sebze", "Sokak Lezzetleri", "Sos", "Sulu Yemek", "Tatlı", "Tavuklu Yemek", "Vegan", "Vejetaryen", "Zeytinyağlı"])
@@ -43,7 +29,7 @@ except Exception as e:
     st.stop()
 
 # --- YARDIMCI FONKSİYONLAR ---
-# ÖNBELLEKLEME TAMAMEN KALDIRILDI
+@st.cache_data(ttl=10)
 def fetch_all_recipes():
     records = worksheet.get_all_records()
     df = pd.DataFrame(records)
@@ -72,7 +58,7 @@ def display_recipe_cards(df):
             col = cols[i % 4]
             with col:
                 st.markdown(f'<div class="recipe-card">', unsafe_allow_html=True)
-                st.image(recipe['thumbnail_url'], use_container_width='always')
+                st.image(recipe['thumbnail_url'], use_container_width=True)
                 with st.container():
                     st.markdown(f"""<div class="card-body"><h3>{html.escape(str(recipe.get('baslik','')))}</h3><div class="category-badge">{html.escape(str(recipe.get('kategori','')))}</div></div>""", unsafe_allow_html=True)
                     with st.expander("Detayları Gör"):
@@ -90,32 +76,21 @@ def display_recipe_cards(df):
                                 try:
                                     cell = worksheet.find(str(recipe['id']))
                                     worksheet.delete_rows(cell.row)
-                                    st.rerun()
+                                    st.cache_data.clear(); st.rerun()
                                 except gspread.CellNotFound:
-                                    st.error("Tarif bulunamadı, sayfa yenileniyor."); st.rerun()
+                                    st.error("Tarif bulunamadı, sayfa yenileniyor."); st.cache_data.clear(); st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
 
 # --- ANA UYGULAMA AKIŞI ---
 if 'recipe_to_edit_id' not in st.session_state: st.session_state.recipe_to_edit_id = None
-with st.sidebar:
-    st.markdown("<h1 style='font-size: 2.5rem; text-align: center;'>Lezzet Defterim</h1>", unsafe_allow_html=True)
-    page = st.radio("Sayfa Seçimi", ["Tüm Tarifler", "Ne Pişirsem?"], label_visibility="hidden")
-    st.markdown("---")
-    with st.expander("📝 Yeni Bir Tarif Ekle", expanded=True):
-        with st.form("new_recipe_form", clear_on_submit=True):
-            insta_url = st.text_input("Instagram Reel Linki"); tarif_basligi = st.text_input("Tarif Başlığı"); kategori = st.selectbox("Kategori", TUM_KATEGORILER)
-            malzemeler = st.text_area("Malzemeler", height=100); yapilisi = st.text_area("Yapılışı", height=100)
-            submitted_add = st.form_submit_button("✨ Tarifi Kaydet")
-            if submitted_add:
-                if insta_url and tarif_basligi and malzemeler:
-                    with st.spinner("İşleniyor..."):
-                        thumbnail_url = get_instagram_thumbnail(insta_url)
-                        if thumbnail_url:
-                            new_row = [datetime.now().strftime("%Y%m%d%H%M%S"), insta_url, tarif_basligi, yapilisi, malzemeler, kategori, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), thumbnail_url]
-                            worksheet.append_row(new_row, value_input_option='USER_ENTERED')
-                            st.success("Tarif başarıyla kaydedildi!"); st.rerun()
-                        else: st.error("Bu linkten kapak fotoğrafı alınamadı.")
-                else: st.warning("Lütfen tüm alanları doldurun.")
+st.markdown("<h1 style='font-family: \"Dancing Script\", cursive;'>Ceren'in Defteri</h1>", unsafe_allow_html=True)
+
+selected_page = option_menu(
+    menu_title=None, options=["Tüm Tarifler", "Ne Pişirsem?", "Yeni Tarif Ekle"],
+    icons=['card-list', 'lightbulb', 'plus-circle'], menu_icon="cast", default_index=0, orientation="horizontal",
+    styles={ "container": {"border-bottom": "2px solid #eee", "padding-bottom": "10px"}, "nav-link": {"font-family": "'Quicksand', sans-serif", "font-weight":"600"}, "nav-link-selected": {"background-color": "#D1E7DD", "color": "#2F4F4F"}, }
+)
+
 if st.session_state.recipe_to_edit_id is not None:
     all_recipes_df = fetch_all_recipes()
     recipe_details_list = all_recipes_df[all_recipes_df['id'].astype(str) == str(st.session_state.recipe_to_edit_id)].to_dict('records')
@@ -134,21 +109,21 @@ if st.session_state.recipe_to_edit_id is not None:
                         cell = worksheet.find(str(st.session_state.recipe_to_edit_id))
                         worksheet.update_cell(cell.row, 3, edit_baslik); worksheet.update_cell(cell.row, 4, edit_yapilisi)
                         worksheet.update_cell(cell.row, 5, edit_malzemeler); worksheet.update_cell(cell.row, 6, edit_kategori)
-                        st.success(f"Tarif güncellendi!"); st.session_state.recipe_to_edit_id = None; st.rerun()
+                        st.success(f"Tarif güncellendi!"); st.session_state.recipe_to_edit_id = None; st.cache_data.clear(); st.rerun()
                     except gspread.CellNotFound:
-                        st.error("Tarif bulunamadı, sayfa yenileniyor."); st.session_state.recipe_to_edit_id = None; st.rerun()
+                        st.error("Tarif bulunamadı, sayfa yenileniyor."); st.session_state.recipe_to_edit_id = None; st.cache_data.clear(); st.rerun()
             with col2:
                 if st.form_submit_button("❌ İptal", use_container_width=True):
                     st.session_state.recipe_to_edit_id = None; st.rerun()
 else:
-    if page == "Tüm Tarifler":
+    if selected_page == "Tüm Tarifler":
         st.markdown("<h2>Tüm Tarifler</h2>", unsafe_allow_html=True)
         all_recipes_df = fetch_all_recipes()
         selected_category = st.selectbox("Kategoriye göre filtrele:", ["Tümü"] + TUM_KATEGORILER)
         if selected_category != "Tümü": filtered_df = all_recipes_df[all_recipes_df['kategori'] == selected_category]
         else: filtered_df = all_recipes_df
         display_recipe_cards(filtered_df)
-    elif page == "Ne Pişirsem?":
+    elif selected_page == "Ne Pişirsem?":
         st.markdown("<h2>Ne Pişirsem?</h2>", unsafe_allow_html=True)
         st.markdown("### Elinizdeki malzemeleri seçin, size uygun tarifleri bulalım!")
         selected_ingredients = []
@@ -172,3 +147,23 @@ else:
             else: st.warning("Bu malzemelerle eşleşen tarif bulunamadı.")
         else:
             st.info("Sonuçları görmek için yukarıdaki listelerden malzeme seçin.")
+    elif selected_page == "Yeni Tarif Ekle":
+        st.markdown("<h2>Yeni Bir Tarif Ekle</h2>", unsafe_allow_html=True)
+        with st.form("new_recipe_page_form", clear_on_submit=True):
+            col1, col2 = st.columns(2)
+            with col1:
+                insta_url = st.text_input("Instagram Reel Linki"); tarif_basligi = st.text_input("Tarif Başlığı"); kategori = st.selectbox("Kategori", TUM_KATEGORILER)
+            with col2:
+                malzemeler = st.text_area("Malzemeler (Her satıra bir tane)", height=200)
+            yapilisi = st.text_area("Yapılışı (Açıklama)", height=200)
+            submitted_add = st.form_submit_button("✨ Tarifi Kaydet", use_container_width=True)
+            if submitted_add:
+                if insta_url and tarif_basligi:
+                    with st.spinner("İşleniyor..."):
+                        thumbnail_url = get_instagram_thumbnail(insta_url)
+                        if thumbnail_url:
+                            new_row = [datetime.now().strftime("%Y%m%d%H%M%S"), insta_url, tarif_basligi, yapilisi, malzemeler, kategori, datetime.now().strftime("%Y-%m-%d %H%M:%S"), thumbnail_url]
+                            worksheet.append_row(new_row, value_input_option='USER_ENTERED')
+                            st.cache_data.clear(); st.success("Tarif başarıyla kaydedildi! 'Tüm Tarifler' sekmesinden görebilirsiniz.")
+                        else: st.error("Bu linkten kapak fotoğrafı alınamadı.")
+                else: st.warning("Lütfen en azından Link ve Başlık alanlarını doldurun.")
