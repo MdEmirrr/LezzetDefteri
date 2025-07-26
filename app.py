@@ -83,7 +83,7 @@ def display_recipe_cards(df):
 
 # --- ANA UYGULAMA AKIŞI ---
 if 'recipe_to_edit_id' not in st.session_state: st.session_state.recipe_to_edit_id = None
-st.markdown("<h1 style='font-family: \"Dancing Script\", cursive;'>Ceren'in Defteri</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='font-family: \"Dancing Script\", cursive;'>🌸Ceren'in Defteri🌸</h1>", unsafe_allow_html=True)
 
 selected_page = option_menu(
     menu_title=None, options=["Tüm Tarifler", "Ne Pişirsem?", "Yeni Tarif Ekle"],
