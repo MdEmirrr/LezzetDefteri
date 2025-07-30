@@ -11,29 +11,23 @@ from streamlit_option_menu import option_menu
 # --- DOSYA YOLU VE SABİT DEĞİŞKENLER ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_FILE = os.path.join(BASE_DIR, 'lezzet_defteri.db')
-# TUM_KATEGORILER listesi artık veritabanından gelecek, bu yüzden siliyoruz.
+# SABİT KATEGORİ LİSTESİNİ SİLİYORUZ, ARTIK VERİTABANINDAN GELECEK
 CATEGORIZED_INGREDIENTS = { "Temel Gıdalar": ["Un", "Pirinç", "Bulgur", "Makarna", "Şeker", "Tuz", "Sıvı yağ", "Zeytinyağı", "Salça", "Sirke", "Maya"], "Süt & Süt Ürünleri": ["Süt", "Yoğurt", "Peynir", "Beyaz peynir", "Kaşar peyniri", "Lor peyniri", "Krema", "Tereyağı", "Yumurta"], "Et, Tavuk & Balık": ["Kıyma", "Kuşbaşı et", "Tavuk", "Sucuk", "Sosis", "Balık"], "Sebzeler": ["Soğan", "Sarımsak", "Domates", "Biber", "Patates", "Havuç", "Patlıcan", "Kabak", "Ispanak", "Marul", "Salatalık", "Limon", "Mantar"], "Bakliyat": ["Mercimek", "Nohut", "Fasulye", "Yeşil mercimek"], "Meyveler": ["Elma", "Muz", "Çilek", "Portakal"], "Kuruyemiş & Tatlı": ["Ceviz", "Fındık", "Badem", "Çikolata", "Kakao", "Bal", "Pekmez", "Vanilya"], "Baharatlar": ["Karabiber", "Nane", "Kekik", "Pul biber", "Kimyon", "Tarçın"] }
 
 # --- STİL (CSS) ---
 st.set_page_config(page_title="Ceren'in Defteri", layout="wide")
 st.markdown("""<style>@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Quicksand:wght@400;500;600&display=swap');body, .stApp { background-color: #FFFFFF !important; }.main .block-container { padding-top: 1rem !important; }h1 {font-family: 'Dancing Script', cursive !important;color: #2E8B57 !important;text-align: center;}h2, h3, h5 {font-family: 'Quicksand', sans-serif !important;color: #2F4F4F !important;}.recipe-card {background-color: #FFFFFF;border: 1px solid #e9e9e9;border-radius: 15px;box-shadow: 0 4px 12px rgba(0,0,0,0.05);margin-bottom: 2rem;overflow: hidden;}.card-image {width: 100%;height: 250px;object-fit: cover;}.card-body { padding: 1rem; }.card-body .category-badge {background-color: #D1E7DD;color: #0F5132;padding: 4px 10px;border-radius: 5px;font-size: 0.8rem;font-weight: 600;margin-top: 10px; display: inline-block;}div[data-testid="stExpander"] > summary p {color: #2F4F4F !important;font-weight: 600;}div[data-testid="stExpander"] div[data-testid="stExpanderDetails"] * {color: #333 !important;}</style>""", unsafe_allow_html=True)
 
-# --- YENİ VERİTABANI FONKSİYONLARI ---
+# --- VERİTABANI FONKSİYONLARI ---
 def init_db():
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    # Tarifler tablosu
+    conn = sqlite3.connect(DB_FILE); cursor = conn.cursor()
     cursor.execute('''CREATE TABLE IF NOT EXISTS recipes (id INTEGER PRIMARY KEY AUTOINCREMENT, url TEXT, baslik TEXT NOT NULL, yapilisi TEXT, malzemeler TEXT, kategori TEXT, saved_date TEXT, thumbnail_url TEXT)''')
-    # YENİ KATEGORİLER TABLOSU
     cursor.execute('''CREATE TABLE IF NOT EXISTS categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE)''')
-    conn.commit()
-    conn.close()
-
+    conn.commit(); conn.close()
 def fetch_all_categories():
     conn = sqlite3.connect(DB_FILE); conn.row_factory = sqlite3.Row
     cursor = conn.cursor(); cursor.execute("SELECT * FROM categories ORDER BY name ASC")
     categories = cursor.fetchall(); conn.close(); return categories
-
 def add_category(name):
     conn = sqlite3.connect(DB_FILE); cursor = conn.cursor()
     try:
@@ -42,22 +36,16 @@ def add_category(name):
         st.warning(f"'{name}' kategorisi zaten mevcut.")
     finally:
         conn.close()
-
-def update_category(old_name, new_name):
+def update_category(category_id, old_name, new_name):
     conn = sqlite3.connect(DB_FILE); cursor = conn.cursor()
-    cursor.execute("UPDATE categories SET name = ? WHERE name = ?", (new_name, old_name)); conn.commit()
-    # Tariflerdeki kategori adlarını da güncelle
+    cursor.execute("UPDATE categories SET name = ? WHERE id = ?", (new_name, category_id)); conn.commit()
     cursor.execute("UPDATE recipes SET kategori = ? WHERE kategori = ?", (new_name, old_name)); conn.commit()
     conn.close()
-
-def delete_category(name):
+def delete_category(category_id, name):
     conn = sqlite3.connect(DB_FILE); cursor = conn.cursor()
-    cursor.execute("DELETE FROM categories WHERE name = ?", (name,)); conn.commit()
-    # Bu kategorideki tariflerin kategori alanını boşalt
+    cursor.execute("DELETE FROM categories WHERE id = ?", (category_id,)); conn.commit()
     cursor.execute("UPDATE recipes SET kategori = 'Kategorisiz' WHERE kategori = ?", (name,)); conn.commit()
     conn.close()
-
-# --- MEVCUT YARDIMCI FONKSİYONLAR (Değişiklik yok) ---
 def fetch_all_recipes():
     conn = sqlite3.connect(DB_FILE); conn.row_factory = sqlite3.Row 
     cursor = conn.cursor(); cursor.execute("SELECT * FROM recipes ORDER BY id DESC")
@@ -118,27 +106,22 @@ if 'recipe_to_edit_id' not in st.session_state: st.session_state.recipe_to_edit_
 
 st.markdown("<h1 style='font-family: \"Dancing Script\", cursive;'>Ceren'in Defteri</h1>", unsafe_allow_html=True)
 
-# GÜNCELLENMİŞ ÜST MENÜ (SEKMELER)
 selected_page = option_menu(
-    menu_title=None,
-    options=["Tüm Tarifler", "Ne Pişirsem?", "Yeni Tarif Ekle", "Kategorileri Yönet"],
-    icons=['card-list', 'lightbulb', 'plus-circle', 'pencil-square'],
-    menu_icon="cast",
-    default_index=0,
-    orientation="horizontal",
+    menu_title=None, options=["Tüm Tarifler", "Ne Pişirsem?", "Yeni Tarif Ekle", "Kategorileri Yönet"],
+    icons=['card-list', 'lightbulb', 'plus-circle', 'pencil-square'], menu_icon="cast", default_index=0, orientation="horizontal",
     styles={ "container": {"border-bottom": "2px solid #eee", "padding-bottom": "10px"}, "nav-link": {"font-family": "'Quicksand', sans-serif", "font-weight":"600"}, "nav-link-selected": {"background-color": "#D1E7DD", "color": "#2F4F4F"}, }
 )
 
-# Kategori listesini veritabanından çek
+# KATEGORİ LİSTESİNİ KODUN BAŞINDA VERİTABANINDAN ÇEK
 all_categories_db = fetch_all_categories()
 TUM_KATEGORILER = [cat['name'] for cat in all_categories_db]
 
 if st.session_state.recipe_to_edit_id is not None:
-    # ... (DÜZENLEME FORMU KODU AYNI)
     recipe_details = fetch_one_recipe(st.session_state.recipe_to_edit_id)
     st.markdown(f"## ✏️ Tarifi Düzenle: *{recipe_details['baslik']}*")
     with st.form("edit_main_form"):
         edit_baslik = st.text_input("Tarif Başlığı", value=recipe_details['baslik'])
+        # Formdaki kategori listesini veritabanından gelenle doldur
         edit_kategori = st.selectbox("Kategori", TUM_KATEGORILER, index=TUM_KATEGORILER.index(recipe_details['kategori']) if recipe_details['kategori'] in TUM_KATEGORILER else 0)
         edit_malzemeler = st.text_area("Malzemeler", value=recipe_details['malzemeler'], height=200)
         edit_yapilisi = st.text_area("Yapılışı", value=recipe_details['yapilisi'], height=200)
@@ -151,10 +134,8 @@ if st.session_state.recipe_to_edit_id is not None:
                 st.session_state.recipe_to_edit_id = None; st.rerun()
 else:
     if selected_page == "Tüm Tarifler":
-        # ... (TÜM TARİFLER SAYFASI KODU AYNI)
         st.markdown("<h2>Tüm Tarifler</h2>", unsafe_allow_html=True)
         all_recipes = fetch_all_recipes()
-        # Filtreleme için kategori listesine "Tümü" ekle
         category_filter_list = ["Tümü"] + TUM_KATEGORILER
         selected_category = st.selectbox("Kategoriye göre filtrele:", category_filter_list)
         if selected_category != "Tümü": filtered_recipes = [r for r in all_recipes if r['kategori'] == selected_category]
@@ -162,7 +143,6 @@ else:
         display_recipe_cards(filtered_recipes)
     
     elif selected_page == "Ne Pişirsem?":
-        # ... (NE PİŞİRSEM? SAYFASI KODU AYNI)
         st.markdown("<h2>Ne Pişirsem?</h2>", unsafe_allow_html=True)
         st.markdown("### Elinizdeki malzemeleri seçin, size uygun tarifleri bulalım!")
         selected_ingredients = []
@@ -188,12 +168,13 @@ else:
             st.info("Sonuçları görmek için yukarıdaki listelerden malzeme seçin.")
 
     elif selected_page == "Yeni Tarif Ekle":
-        # ... (YENİ TARİF EKLE SAYFASI KODU AYNI)
         st.markdown("<h2>Yeni Bir Tarif Ekle</h2>", unsafe_allow_html=True)
         with st.form("new_recipe_page_form", clear_on_submit=True):
             col1, col2 = st.columns(2)
             with col1:
-                insta_url = st.text_input("Instagram Reel Linki"); tarif_basligi = st.text_input("Tarif Başlığı"); kategori = st.selectbox("Kategori", TUM_KATEGORILER)
+                insta_url = st.text_input("Instagram Reel Linki"); tarif_basligi = st.text_input("Tarif Başlığı")
+                # Formdaki kategori listesini veritabanından gelenle doldur
+                kategori = st.selectbox("Kategori", TUM_KATEGORILER)
             with col2:
                 malzemeler = st.text_area("Malzemeler (Her satıra bir tane)", height=200)
             yapilisi = st.text_area("Yapılışı (Açıklama)", height=200)
@@ -210,15 +191,12 @@ else:
     
     elif selected_page == "Kategorileri Yönet":
         st.markdown("<h2>🏷️ Kategorileri Yönet</h2>", unsafe_allow_html=True)
-        
         st.subheader("Yeni Kategori Ekle")
         with st.form("new_category_form", clear_on_submit=True):
             new_cat_name = st.text_input("Yeni kategori adı")
             if st.form_submit_button("Ekle"):
                 if new_cat_name:
-                    add_category(new_cat_name)
-                    st.rerun()
-
+                    add_category(new_cat_name); st.rerun()
         st.markdown("---")
         st.subheader("Mevcut Kategoriler")
         if not all_categories_db:
@@ -231,9 +209,7 @@ else:
                 with col2:
                     if st.button("Güncelle", key=f"update_cat_{category['id']}", use_container_width=True):
                         if new_name and new_name != category['name']:
-                            update_category(category['name'], new_name)
-                            st.rerun()
+                            update_category(category['id'], category['name'], new_name); st.rerun()
                 with col3:
                     if st.button("Sil", key=f"delete_cat_{category['id']}", use_container_width=True):
-                        delete_category(category['name'])
-                        st.rerun()
+                        delete_category(category['id'], category['name']); st.rerun()
