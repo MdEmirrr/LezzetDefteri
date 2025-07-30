@@ -13,7 +13,6 @@ st.set_page_config(page_title="Ceren'in Defteri", layout="wide")
 st.markdown("""<style>@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Quicksand:wght@400;500;600&display=swap');body, .stApp { background-color: #FFFFFF !important; }.main .block-container { padding-top: 1rem !important; }h1 {font-family: 'Dancing Script', cursive !important;color: #2E8B57 !important;text-align: center;}h2, h3, h5 {font-family: 'Quicksand', sans-serif !important;color: #2F4F4F !important;}.recipe-card {background-color: #FFFFFF;border: 1px solid #e9e9e9;border-radius: 15px;box-shadow: 0 4px 12px rgba(0,0,0,0.05);margin-bottom: 2rem;overflow: hidden;}.card-image {width: 100%;height: 250px;object-fit: cover;}.card-body { padding: 1rem; }.card-body .category-badge {background-color: #D1E7DD;color: #0F5132;padding: 4px 10px;border-radius: 5px;font-size: 0.8rem;font-weight: 600;margin-top: 10px; display: inline-block;}div[data-testid="stExpander"] > summary p {color: #2F4F4F !important;font-weight: 600;}div[data-testid="stExpander"] div[data-testid="stExpanderDetails"] * {color: #333 !important;}</style>""", unsafe_allow_html=True)
 
 # --- SABİT DEĞİŞKENLER ---
-# TUM_KATEGORILER artık veritabanından gelecek
 CATEGORIZED_INGREDIENTS = { "Temel Gıdalar": ["Un", "Pirinç", "Bulgur", "Makarna", "Şeker", "Tuz", "Sıvı yağ", "Zeytinyağı", "Salça", "Sirke", "Maya"], "Süt & Süt Ürünleri": ["Süt", "Yoğurt", "Peynir", "Beyaz peynir", "Kaşar peyniri", "Lor peyniri", "Krema", "Tereyağı", "Yumurta"], "Et, Tavuk & Balık": ["Kıyma", "Kuşbaşı et", "Tavuk", "Sucuk", "Sosis", "Balık"], "Sebzeler": ["Soğan", "Sarımsak", "Domates", "Biber", "Patates", "Havuç", "Patlıcan", "Kabak", "Ispanak", "Marul", "Salatalık", "Limon", "Mantar"], "Bakliyat": ["Mercimek", "Nohut", "Fasulye", "Yeşil mercimek"], "Meyveler": ["Elma", "Muz", "Çilek", "Portakal"], "Kuruyemiş & Tatlı": ["Ceviz", "Fındık", "Badem", "Çikolata", "Kakao", "Bal", "Pekmez", "Vanilya"], "Baharatlar": ["Karabiber", "Nane", "Kekik", "Pul biber", "Kimyon", "Tarçın"] }
 
 # --- VERİTABANI BAĞLANTISI (GOOGLE SHEETS) ---
@@ -22,12 +21,11 @@ try:
     creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=scopes)
     gc = gspread.authorize(creds)
     spreadsheet = gc.open("Lezzet Defteri Veritabanı")
-    # İKİ AYRI SAYFA KULLANACAĞIZ
     recipes_worksheet = spreadsheet.worksheet("Tarifler")
     categories_worksheet = spreadsheet.worksheet("Kategoriler")
 except Exception as e:
     st.error(f"Google E-Tablosu'na bağlanırken bir hata oluştu: {e}")
-    st.info("E-Tablonuzda 'Tarifler' ve 'Kategoriler' adında iki sayfa olduğundan ve paylaşım ayarlarınızın doğru olduğundan emin olun.")
+    st.info("E-Tablonuzda 'Tarifler' ve 'Kategoriler' adında iki sayfa (sekme) olduğundan ve paylaşım ayarlarınızın doğru olduğundan emin olun.")
     st.stop()
 
 # --- YARDIMCI FONKSİYONLAR ---
@@ -37,12 +35,14 @@ def fetch_all_recipes():
     df = pd.DataFrame(records)
     if not df.empty: df = df[df['id'] != ''].copy()
     return df
+
 @st.cache_data(ttl=10)
 def fetch_all_categories():
     records = categories_worksheet.get_all_records()
     df = pd.DataFrame(records)
     if not df.empty: df = df[df['name'] != ''].copy()
     return df
+
 def get_instagram_thumbnail(url):
     try:
         response = requests.get(url, timeout=10); response.raise_for_status()
@@ -50,21 +50,49 @@ def get_instagram_thumbnail(url):
         return meta_tag['content'] if meta_tag else None
     except requests.exceptions.RequestException: return None
 
-# ... (display_recipe_cards fonksiyonu aynı, değişiklik yok)
 def display_recipe_cards(df):
-    if df.empty: st.warning("Bu kriterlere uygun tarif bulunamadı."); return
-    st.markdown(f"**{len(df)}** adet tarif bulundu."); st.write("")
+    if df.empty:
+        st.warning("Bu kriterlere uygun tarif bulunamadı.")
+        return
+    st.markdown(f"**{len(df)}** adet tarif bulundu.")
+    st.write("")
+    
     cols = st.columns(4)
     recipes_list = df.to_dict('records')
     for i, recipe in enumerate(reversed(recipes_list)):
         if pd.notna(recipe.get('thumbnail_url')) and recipe.get('thumbnail_url'):
             col = cols[i % 4]
             with col:
-                # ... (Kart gösterme kodu aynı)
+                st.markdown(f'<div class="recipe-card">', unsafe_allow_html=True)
+                st.image(recipe['thumbnail_url'], use_container_width=True)
+                with st.container():
+                    st.markdown(f"""<div class="card-body"><h3>{html.escape(str(recipe.get('baslik','')))}</h3><div class="category-badge">{html.escape(str(recipe.get('kategori','')))}</div></div>""", unsafe_allow_html=True)
+                    with st.expander("Detayları Gör"):
+                        st.markdown(f"<a href='{recipe['url']}' target='_blank'>» Instagram'da Gör</a>", unsafe_allow_html=True)
+                        st.markdown("---"); st.markdown("<h5>Malzemeler</h5>", unsafe_allow_html=True)
+                        st.text(recipe.get('malzemeler') if pd.notna(recipe.get('malzemeler')) else "Eklenmemiş")
+                        st.markdown("---"); st.markdown("<h5>Yapılışı</h5>", unsafe_allow_html=True)
+                        st.write(recipe.get('yapilisi') if pd.notna(recipe.get('yapilisi')) else "Eklenmemiş")
+                        st.markdown("---"); btn_cols = st.columns(2)
+                        with btn_cols[0]:
+                            if st.button("✏️ Düzenle", key=f"edit_{recipe['id']}", use_container_width=True):
+                                st.session_state.recipe_to_edit_id = recipe['id']; st.rerun()
+                        with btn_cols[1]:
+                            if st.button("❌ Sil", key=f"delete_{recipe['id']}", use_container_width=True):
+                                try:
+                                    cell = recipes_worksheet.find(str(recipe['id']))
+                                    recipes_worksheet.delete_rows(cell.row)
+                                    st.cache_data.clear(); st.rerun()
+                                except gspread.CellNotFound:
+                                    st.error("Tarif bulunamadı, sayfa yenileniyor."); st.cache_data.clear(); st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
 
 # --- ANA UYGULAMA AKIŞI ---
 if 'recipe_to_edit_id' not in st.session_state: st.session_state.recipe_to_edit_id = None
 st.markdown("<h1 style='font-family: \"Dancing Script\", cursive;'>Ceren'in Defteri</h1>", unsafe_allow_html=True)
+
+all_categories_df = fetch_all_categories()
+TUM_KATEGORILER = sorted(all_categories_df['name'].tolist()) if not all_categories_df.empty else []
 
 selected_page = option_menu(
     menu_title=None, options=["Tüm Tarifler", "Ne Pişirsem?", "Yeni Tarif Ekle", "Kategorileri Yönet"],
@@ -72,13 +100,33 @@ selected_page = option_menu(
     styles={ "container": {"border-bottom": "2px solid #eee", "padding-bottom": "10px"}, "nav-link": {"font-family": "'Quicksand', sans-serif", "font-weight":"600"}, "nav-link-selected": {"background-color": "#D1E7DD", "color": "#2F4F4F"}, }
 )
 
-# KATEGORİ LİSTESİNİ VERİTABANINDAN (E-TABLO'DAN) ÇEK
-categories_df = fetch_all_categories()
-TUM_KATEGORILER = sorted(categories_df['name'].tolist()) if not categories_df.empty else []
-
 if st.session_state.recipe_to_edit_id is not None:
-    # ... (Düzenleme formu kodu, kategori listesini TUM_KATEGORILER'den alacak şekilde çalışır, değişiklik yok)
-    pass
+    all_recipes_df = fetch_all_recipes()
+    recipe_details_list = all_recipes_df[all_recipes_df['id'].astype(str) == str(st.session_state.recipe_to_edit_id)].to_dict('records')
+    if recipe_details_list:
+        recipe_details = recipe_details_list[0]
+        st.markdown(f"## ✏️ Tarifi Düzenle: *{recipe_details['baslik']}*")
+        with st.form("edit_main_form"):
+            edit_baslik = st.text_input("Tarif Başlığı", value=recipe_details['baslik'])
+            edit_kategori = st.selectbox("Kategori", TUM_KATEGORILER, index=TUM_KATEGORILER.index(recipe_details['kategori']) if recipe_details['kategori'] in TUM_KATEGORILER else 0)
+            edit_malzemeler = st.text_area("Malzemeler", value=recipe_details['malzemeler'], height=200)
+            edit_yapilisi = st.text_area("Yapılışı", value=recipe_details['yapilisi'], height=200)
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.form_submit_button("💾 Değişiklikleri Kaydet", use_container_width=True):
+                    try:
+                        cell = recipes_worksheet.find(str(st.session_state.recipe_to_edit_id))
+                        # Sütun numaraları: B=2, C=3, D=4, E=5, F=6
+                        recipes_worksheet.update_cell(cell.row, 3, edit_baslik)
+                        recipes_worksheet.update_cell(cell.row, 4, edit_yapilisi)
+                        recipes_worksheet.update_cell(cell.row, 5, edit_malzemeler)
+                        recipes_worksheet.update_cell(cell.row, 6, edit_kategori)
+                        st.success(f"Tarif güncellendi!"); st.session_state.recipe_to_edit_id = None; st.cache_data.clear(); st.rerun()
+                    except gspread.CellNotFound:
+                        st.error("Tarif bulunamadı, sayfa yenileniyor."); st.session_state.recipe_to_edit_id = None; st.cache_data.clear(); st.rerun()
+            with col2:
+                if st.form_submit_button("❌ İptal", use_container_width=True):
+                    st.session_state.recipe_to_edit_id = None; st.rerun()
 else:
     if selected_page == "Tüm Tarifler":
         st.markdown("<h2>Tüm Tarifler</h2>", unsafe_allow_html=True)
@@ -89,15 +137,36 @@ else:
         display_recipe_cards(filtered_df)
     
     elif selected_page == "Ne Pişirsem?":
-        # ... (Ne Pişirsem? sayfası kodu aynı, değişiklik yok)
-        pass
+        st.markdown("<h2>Ne Pişirsem?</h2>", unsafe_allow_html=True)
+        st.markdown("### Elinizdeki malzemeleri seçin, size uygun tarifleri bulalım!")
+        selected_ingredients = []
+        categories = list(CATEGORIZED_INGREDIENTS.keys()); num_columns = 4; cols = st.columns(num_columns)
+        for i, category_name in enumerate(categories):
+            column = cols[i % num_columns]
+            with column:
+                st.markdown(f"<h5>{category_name}</h5>", unsafe_allow_html=True)
+                for ingredient in CATEGORIZED_INGREDIENTS[category_name]:
+                    if st.checkbox(ingredient, key=f"ing_{ingredient}"): selected_ingredients.append(ingredient)
+        st.markdown("---")
+        if selected_ingredients:
+            st.write("**Seçilen Malzemeler:**", ", ".join(selected_ingredients))
+            all_recipes_df = fetch_all_recipes()
+            filtered_list = []
+            for index, row in all_recipes_df.iterrows():
+                recipe_ingredients_lower = str(row.get('malzemeler','')).lower()
+                if all(malzeme.lower() in recipe_ingredients_lower for malzeme in selected_ingredients):
+                    filtered_list.append(row)
+            if filtered_list: display_recipe_cards(pd.DataFrame(filtered_list))
+            else: st.warning("Bu malzemelerle eşleşen tarif bulunamadı.")
+        else:
+            st.info("Sonuçları görmek için yukarıdaki listelerden malzeme seçin.")
 
     elif selected_page == "Yeni Tarif Ekle":
         st.markdown("<h2>Yeni Bir Tarif Ekle</h2>", unsafe_allow_html=True)
         with st.form("new_recipe_page_form", clear_on_submit=True):
             insta_url = st.text_input("Instagram Reel Linki")
             tarif_basligi = st.text_input("Tarif Başlığı")
-            kategori = st.selectbox("Kategori", TUM_KATEGORILER) # Artık dinamik listeyi kullanıyor
+            kategori = st.selectbox("Kategori", TUM_KATEGORILER)
             malzemeler = st.text_area("Malzemeler (Her satıra bir tane)", height=200)
             yapilisi = st.text_area("Yapılışı (Açıklama)", height=200)
             submitted_add = st.form_submit_button("✨ Tarifi Kaydet", use_container_width=True)
@@ -106,15 +175,14 @@ else:
                     with st.spinner("İşleniyor..."):
                         thumbnail_url = get_instagram_thumbnail(insta_url)
                         if thumbnail_url:
-                            new_row = [datetime.now().strftime("%Y%m%d%H%M%S"), insta_url, tarif_basligi, yapilisi, malzemeler, kategori, datetime.now().strftime("%Y-%m-%d %H%M%S"), thumbnail_url]
+                            new_row = [datetime.now().strftime("%Y%m%d%H%M%S"), insta_url, tarif_basligi, yapilisi, malzemeler, kategori, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), thumbnail_url]
                             recipes_worksheet.append_row(new_row, value_input_option='USER_ENTERED')
-                            st.cache_data.clear(); st.success("Tarif başarıyla kaydedildi!")
+                            st.cache_data.clear(); st.success("Tarif başarıyla kaydedildi! 'Tüm Tarifler' sekmesinden görebilirsiniz.")
                         else: st.error("Bu linkten kapak fotoğrafı alınamadı.")
                 else: st.warning("Lütfen en azından Link ve Başlık alanlarını doldurun.")
-
+    
     elif selected_page == "Kategorileri Yönet":
         st.markdown("<h2>🏷️ Kategorileri Yönet</h2>", unsafe_allow_html=True)
-        
         st.subheader("Yeni Kategori Ekle")
         with st.form("new_category_form", clear_on_submit=True):
             new_cat_name = st.text_input("Yeni kategori adı")
@@ -122,13 +190,13 @@ else:
                 if new_cat_name and new_cat_name not in TUM_KATEGORILER:
                     categories_worksheet.append_row([new_cat_name])
                     st.cache_data.clear(); st.rerun()
-
         st.markdown("---")
         st.subheader("Mevcut Kategoriler")
-        if not TUM_KATEGORILER:
+        if categories_df.empty:
             st.info("Henüz hiç kategori eklenmemiş.")
         else:
-            for cat_name in TUM_KATEGORILER:
+            for index, row in categories_df.iterrows():
+                cat_name = row['name']
                 col1, col2 = st.columns([4, 1])
                 with col1:
                     st.text(cat_name)
@@ -137,6 +205,7 @@ else:
                         try:
                             cell = categories_worksheet.find(cat_name)
                             categories_worksheet.delete_rows(cell.row)
+                            # İlgili tariflerin kategorisini de "Kategorisiz" yapabiliriz (opsiyonel)
                             st.cache_data.clear(); st.rerun()
                         except gspread.CellNotFound:
                             st.error("Kategori bulunamadı.")
