@@ -61,11 +61,15 @@ def display_recipe_cards(df):
             col = cols[i % 4]
             with col:
                 st.markdown(f'<div class="recipe-card">', unsafe_allow_html=True)
-                st.image(recipe['thumbnail_url'], use_container_width=True)
+                st.markdown(
+                     f"""<a href="{recipe['url']}" target="_blank">
+                            <img src="{recipe['thumbnail_url']}" class="card-image"/>
+                        </a>""",
+                     unsafe_allow_html=True,
+                 )
                 with st.container():
                     st.markdown(f"""<div class="card-body"><h3>{html.escape(str(recipe.get('baslik','')))}</h3><div class="category-badge">{html.escape(str(recipe.get('kategori','')))}</div></div>""", unsafe_allow_html=True)
                     with st.expander("Detayları Gör"):
-                        st.markdown(f"<a href='{recipe['url']}' target='_blank'>» Instagram'da Gör</a>", unsafe_allow_html=True)
                         st.markdown("---")
                         st.markdown("<h5>Malzemeler</h5>", unsafe_allow_html=True)
                         st.text(recipe.get('malzemeler') if pd.notna(recipe.get('malzemeler')) else "Eklenmemiş")
