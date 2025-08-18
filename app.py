@@ -37,14 +37,17 @@ def fetch_all_recipes():
         df = df[df['id'] != ''].copy()
     return df
 
+ACCESS_TOKEN = "2273742999729122|18b849a741b77fde85b6c1f6b0f32a11"
+
 def get_instagram_thumbnail(url):
     try:
-        response = requests.get(url, timeout=10)
+        api_url = f"https://graph.facebook.com/v19.0/instagram_oembed?url={url}&access_token={ACCESS_TOKEN}"
+        response = requests.get(api_url, timeout=10)
         response.raise_for_status()
-        soup = BeautifulSoup(response.text, 'html.parser')
-        meta_tag = soup.find('meta', property='og:image')
-        return meta_tag['content'] if meta_tag else None
-    except requests.exceptions.RequestException:
+        data = response.json()
+        return data.get("thumbnail_url")
+    except Exception as e:
+        print("Hata:", e)
         return None
 
 def display_recipe_cards(df):
