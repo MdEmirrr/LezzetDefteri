@@ -176,21 +176,8 @@ if st.session_state.recipe_to_edit_id is not None:
 else:
     if selected_page == "Tüm Tarifler":
         st.markdown("<h2>Tüm Tarifler</h2>", unsafe_allow_html=True)
-        all_recipes_df = fetch_all_recipes()
-        selected_category = st.selectbox("Kategoriye göre filtrele:", ["Tümü"] + TUM_KATEGORILER)
-        if selected_category != "Tümü":
-            filtered_df = all_recipes_df[all_recipes_df['kategori'] == selected_category]
-        else:
-            filtered_df = all_recipes_df
-        display_recipe_cards(filtered_df)
-    
 
-
-
-
-    elif selected_page == "Ne Pişirsem?":
-        st.markdown("<h2>Ne Pişirsem?</h2>", unsafe_allow_html=True)
-
+        
     if st.button("📸 Eski tariflerin thumbnail'lerini güncelle"):
         all_recipes = worksheet.get_all_records()
         updated_count = 0
@@ -214,6 +201,21 @@ else:
 
 
 
+
+        all_recipes_df = fetch_all_recipes()
+        selected_category = st.selectbox("Kategoriye göre filtrele:", ["Tümü"] + TUM_KATEGORILER)
+        if selected_category != "Tümü":
+            filtered_df = all_recipes_df[all_recipes_df['kategori'] == selected_category]
+        else:
+            filtered_df = all_recipes_df
+        display_recipe_cards(filtered_df)
+    
+
+
+
+
+    elif selected_page == "Ne Pişirsem?":
+        st.markdown("<h2>Ne Pişirsem?</h2>", unsafe_allow_html=True)
         st.markdown("### Elinizdeki malzemeleri seçin, size uygun tarifleri bulalım!")
         selected_ingredients = []
         categories = list(CATEGORIZED_INGREDIENTS.keys())
