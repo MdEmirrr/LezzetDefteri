@@ -6,6 +6,7 @@ from datetime import datetime
 import requests
 import html
 from streamlit_option_menu import option_menu
+from bs4 import BeautifulSoup
 
 # --- STİL (CSS) ---
 st.set_page_config(page_title="Ceren'in Defteri", layout="wide")
@@ -64,11 +65,18 @@ def clean_instagram_url(url):
 
 def get_instagram_thumbnail(url):
     try:
-        url = clean_instagram_url(url)
-        api_url = f"https://graph.facebook.com/v19.0/instagram_oembed?url={url}&access_token={ACCESS_TOKEN}"
-        response = requests.get(api_url, timeout=10)
+        headers = {"User-Agent": "Mozilla/5.0"}
+        response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
-        return response.json().get("thumbnail_url")
+        
+        soup = BeautifulSoup(response.text, "html.parser")
+        img_tag = soup.find("meta", property="og:image")
+        
+        if img_tag and img_tag.get("content"):
+            return img_tag["content"]
+        else:
+            print("Resim bulunamadı.")
+            return None
     except Exception as e:
         print("Hata:", e)
         return None
