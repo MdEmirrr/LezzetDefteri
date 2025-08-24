@@ -59,16 +59,26 @@ def display_recipe_cards(df):
     cols = st.columns(4)
     recipes_list = df.to_dict('records')
     for i, recipe in enumerate(reversed(recipes_list)):
-        if pd.notna(recipe.get('thumbnail_url')) and recipe.get('thumbnail_url'):
-            col = cols[i % 4]
-            with col:
-                st.markdown(f'<div class="recipe-card">', unsafe_allow_html=True)
-                st.markdown(
-                     f"""<a href="{recipe['url']}" target="_blank">
-                            <img src="{recipe['thumbnail_url']}" class="card-image"/>
-                        </a>""",
-                     unsafe_allow_html=True,
-                 )
+       
+        # Önce images klasöründen kontrol et
+        local_image_path = f"images/{recipe['id']}.jpg"
+        if os.path.exists(local_image_path):
+            img_src = local_image_path
+        elif pd.notna(recipe.get('thumbnail_url')) and recipe.get('thumbnail_url'):
+            img_src = recipe['thumbnail_url']
+        else:
+            img_src = "images/default.jpg"  # placeholder
+
+        col = cols[i % 4]
+        with col:
+            st.markdown(f'<div class="recipe-card">', unsafe_allow_html=True)
+            st.markdown(
+                f"""<a href="{recipe['url']}" target="_blank">
+                    <img src="{img_src}" class="card-image"/>
+                </a>""",
+                unsafe_allow_html=True,
+                )
+
                 with st.container():
                     st.markdown(f"""<div class="card-body"><h3>{html.escape(str(recipe.get('baslik','')))}</h3><div class="category-badge">{html.escape(str(recipe.get('kategori','')))}</div></div>""", unsafe_allow_html=True)
                     with st.expander("Detayları Gör"):
@@ -204,7 +214,12 @@ else:
                         thumbnail_url = get_instagram_thumbnail(insta_url)
                         if thumbnail_url:
                             new_row = [datetime.now().strftime("%Y%m%d%H%M%S"), insta_url, tarif_basligi, yapilisi, malzemeler, kategori, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), thumbnail_url]
-                            worksheet.append_row(new_row, value_input_option='USER_ENTERED')
+                            # yeni id üretelim (zaten timestamp var)
+                            new_id = datetime.now().strftime("%Y%m%d%H%M%S")
+                                # thumbnail_url çekildi ise resmi kaydet
+                            if thumbnail_url:
+                                save_image_from_url(thumbnail_url, f"{new_id}.jpg")
+                            worksheet.append_row(new_id, value_input_option='USER_ENTERED')
                             st.cache_data.clear()
                             st.success("Tarif başarıyla kaydedildi! 'Tüm Tarifler' sekmesinden görebilirsiniz.")
                         else:
