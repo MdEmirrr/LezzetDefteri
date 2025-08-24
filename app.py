@@ -4,58 +4,31 @@ import pandas as pd
 from google.oauth2.service_account import Credentials
 from datetime import datetime
 import requests
+from bs4 import BeautifulSoup
 import html
 from streamlit_option_menu import option_menu
-from bs4 import BeautifulSoup
 
 # --- STİL (CSS) ---
 st.set_page_config(page_title="Ceren'in Defteri", layout="wide")
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Quicksand:wght@400;500;600&display=swap');
-body, .stApp { background-color: #FFFFFF !important; }
-.main .block-container { padding-top: 1rem !important; }
-h1 {font-family: 'Dancing Script', cursive !important;color: #2E8B57 !important;text-align: center;}
-h2, h3, h5 {font-family: 'Quicksand', sans-serif !important;color: #2F4F4F !important;}
-.recipe-card {background-color: #FFFFFF;border: 1px solid #e9e9e9;border-radius: 15px;box-shadow: 0 4px 12px rgba(0,0,0,0.05);margin-bottom: 2rem;overflow: hidden;}
-.card-image {width: 100%;height: 250px;object-fit: cover;}
-.card-body { padding: 1rem; }
-.card-body .category-badge {background-color: #D1E7DD;color: #0F5132;padding: 4px 10px;border-radius: 5px;font-size: 0.8rem;font-weight: 600;margin-top: 10px; display: inline-block;}
-div[data-testid="stExpander"] > summary p {color: #2F4F4F !important;font-weight: 600;}
-div[data-testid="stExpander"] div[data-testid="stExpanderDetails"] * {color: #333 !important;}
-</style>
-""", unsafe_allow_html=True)
+st.markdown("""<style>@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Quicksand:wght@400;500;600&display=swap');body, .stApp { background-color: #FFFFFF !important; }.main .block-container { padding-top: 1rem !important; }h1 {font-family: 'Dancing Script', cursive !important;color: #2E8B57 !important;text-align: center;}h2, h3, h5 {font-family: 'Quicksand', sans-serif !important;color: #2F4F4F !important;}.recipe-card {background-color: #FFFFFF;border: 1px solid #e9e9e9;border-radius: 15px;box-shadow: 0 4px 12px rgba(0,0,0,0.05);margin-bottom: 2rem;overflow: hidden;}.card-image {width: 100%;height: 250px;object-fit: cover;}.card-body { padding: 1rem; }.card-body .category-badge {background-color: #D1E7DD;color: #0F5132;padding: 4px 10px;border-radius: 5px;font-size: 0.8rem;font-weight: 600;margin-top: 10px; display: inline-block;}div[data-testid="stExpander"] > summary p {color: #2F4F4F !important;font-weight: 600;}div[data-testid="stExpander"] div[data-testid="stExpanderDetails"] * {color: #333 !important;}</style>""", unsafe_allow_html=True)
 
-# --- SABİTLER ---
-TUM_KATEGORILER = sorted(["Aperatif", "Atıştırmalık", "Bakliyat", "Balık & Deniz Ürünleri", "Çorba", "Dolma", "Et", "Glutensiz", "Hamurişi", "Kahvaltılık", "Kebap", "Kızartma", "Köfte", "Makarna", "Meze", "Pilav", "Pratik", "Salata", "Sandviç", "Sebze",  "Sos",  "Tatlı", "Tavuk", "Pizza", "İçecek"])
-CATEGORIZED_INGREDIENTS = {
-    "Temel Gıdalar": ["Un","Pirinç","Bulgur","Makarna","Şeker","Tuz","Sıvı yağ","Zeytinyağı","Salça","Sirke","Maya"],
-    "Süt & Süt Ürünleri": ["Süt","Yoğurt","Peynir","Beyaz peynir","Kaşar peyniri","Lor peyniri","Krema","Tereyağı","Yumurta"],
-    "Et, Tavuk & Balık": ["Kıyma","Kuşbaşı et","Tavuk","Sucuk","Sosis","Balık"],
-    "Sebzeler": ["Soğan","Sarımsak","Domates","Biber","Patates","Havuç","Patlıcan","Kabak","Ispanak","Marul","Salatalık","Limon","Mantar"],
-    "Bakliyat": ["Mercimek","Nohut","Fasulye","Yeşil mercimek"],
-    "Meyveler": ["Elma","Muz","Çilek","Portakal"],
-    "Kuruyemiş & Tatlı": ["Ceviz","Fındık","Badem","Çikolata","Kakao","Bal","Pekmez","Vanilya"],
-    "Baharatlar": ["Karabiber","Nane","Kekik","Pul biber","Kimyon","Tarçın"]
-}
+# --- SABİT DEĞİŞKENLER ---
+TUM_KATEGORILER = sorted(["Aperatif", "Atıştırmalık", "Bakliyat", "Balık & Deniz Ürünleri", "Çorba", "Dolma", "Etli Yemek", "Glutensiz", "Hamurişi", "Kahvaltılık", "Kebap", "Kızartma", "Köfte", "Makarna", "Meze", "Pilav", "Pratik", "Salata", "Sandviç", "Sebze", "Sokak Lezzetleri", "Sos", "Sulu Yemek", "Tatlı", "Tavuklu Yemek", "Vegan", "Vejetaryen", "Zeytinyağlı"])
+CATEGORIZED_INGREDIENTS = { "Temel Gıdalar": ["Un", "Pirinç", "Bulgur", "Makarna", "Şeker", "Tuz", "Sıvı yağ", "Zeytinyağı", "Salça", "Sirke", "Maya"], "Süt & Süt Ürünleri": ["Süt", "Yoğurt", "Peynir", "Beyaz peynir", "Kaşar peyniri", "Lor peyniri", "Krema", "Tereyağı", "Yumurta"], "Et, Tavuk & Balık": ["Kıyma", "Kuşbaşı et", "Tavuk", "Sucuk", "Sosis", "Balık"], "Sebzeler": ["Soğan", "Sarımsak", "Domates", "Biber", "Patates", "Havuç", "Patlıcan", "Kabak", "Ispanak", "Marul", "Salatalık", "Limon", "Mantar"], "Bakliyat": ["Mercimek", "Nohut", "Fasulye", "Yeşil mercimek"], "Meyveler": ["Elma", "Muz", "Çilek", "Portakal"], "Kuruyemiş & Tatlı": ["Ceviz", "Fındık", "Badem", "Çikolata", "Kakao", "Bal", "Pekmez", "Vanilya"], "Baharatlar": ["Karabiber", "Nane", "Kekik", "Pul biber", "Kimyon", "Tarçın"] }
 
-ACCESS_TOKEN = "2273742999729122|18b849a741b77fde85b6c1f6b0f32a11"
-
-# --- GOOGLE SHEETS BAĞLANTISI ---
+# --- VERİTABANI BAĞLANTISI (GOOGLE SHEETS) ---
 try:
-    scopes = ['https://www.googleapis.com/auth/spreadsheets','https://www.googleapis.com/auth/drive']
+    scopes = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
     creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=scopes)
     gc = gspread.authorize(creds)
-    worksheet = gc.open("Lezzet Defteri Veritabanı").worksheet("Sayfa1")
+    spreadsheet = gc.open("Lezzet Defteri Veritabanı")
+    worksheet = spreadsheet.worksheet("Sayfa1")
 except Exception as e:
     st.error(f"Google E-Tablosu'na bağlanırken bir hata oluştu: {e}")
+    st.info("`.streamlit/secrets.toml` dosyanızı, E-Tablo paylaşım ayarlarınızı ve Google Cloud projenizdeki API'lerin (Sheets ve Drive) etkin olduğunu kontrol edin.")
     st.stop()
 
-
-
-
-
-# --- FONKSİYONLAR ---
+# --- YARDIMCI FONKSİYONLAR ---
 @st.cache_data(ttl=10)
 def fetch_all_recipes():
     records = worksheet.get_all_records()
@@ -64,25 +37,14 @@ def fetch_all_recipes():
         df = df[df['id'] != ''].copy()
     return df
 
-def clean_instagram_url(url):
-    return url.split("?")[0]
-
 def get_instagram_thumbnail(url):
     try:
-        headers = {"User-Agent": "Mozilla/5.0"}
-        response = requests.get(url, headers=headers, timeout=10)
+        response = requests.get(url, timeout=10)
         response.raise_for_status()
-        
-        soup = BeautifulSoup(response.text, "html.parser")
-        img_tag = soup.find("meta", property="og:image")
-        
-        if img_tag and img_tag.get("content"):
-            return img_tag["content"]
-        else:
-            print("Resim bulunamadı.")
-            return None
-    except Exception as e:
-        print("Hata:", e)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        meta_tag = soup.find('meta', property='og:image')
+        return meta_tag['content'] if meta_tag else None
+    except requests.exceptions.RequestException:
         return None
 
 def display_recipe_cards(df):
@@ -91,6 +53,7 @@ def display_recipe_cards(df):
         return
     st.markdown(f"**{len(df)}** adet tarif bulundu.")
     st.write("")
+    
     cols = st.columns(4)
     recipes_list = df.to_dict('records')
     for i, recipe in enumerate(reversed(recipes_list)):
@@ -98,9 +61,14 @@ def display_recipe_cards(df):
             col = cols[i % 4]
             with col:
                 st.markdown(f'<div class="recipe-card">', unsafe_allow_html=True)
-                st.markdown(f'<a href="{recipe["url"]}" target="_blank"><img src="{recipe["thumbnail_url"]}" class="card-image"/></a>', unsafe_allow_html=True)
+                st.markdown(
+                     f"""<a href="{recipe['url']}" target="_blank">
+                            <img src="{recipe['thumbnail_url']}" class="card-image"/>
+                        </a>""",
+                     unsafe_allow_html=True,
+                 )
                 with st.container():
-                    st.markdown(f'<div class="card-body"><h3>{html.escape(str(recipe.get("baslik","")))}</h3><div class="category-badge">{html.escape(str(recipe.get("kategori","")))}</div></div>', unsafe_allow_html=True)
+                    st.markdown(f"""<div class="card-body"><h3>{html.escape(str(recipe.get('baslik','')))}</h3><div class="category-badge">{html.escape(str(recipe.get('kategori','')))}</div></div>""", unsafe_allow_html=True)
                     with st.expander("Detayları Gör"):
                         st.markdown("---")
                         st.markdown("<h5>Malzemeler</h5>", unsafe_allow_html=True)
@@ -122,7 +90,9 @@ def display_recipe_cards(df):
                                     st.cache_data.clear()
                                     st.rerun()
                                 except gspread.CellNotFound:
-                                    st.error("Tarif bulunamadı.")
+                                    st.error("Tarif bulunamadı, sayfa yenileniyor.")
+                                    st.cache_data.clear()
+                                    st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
 
 # --- ANA UYGULAMA AKIŞI ---
@@ -176,32 +146,6 @@ if st.session_state.recipe_to_edit_id is not None:
 else:
     if selected_page == "Tüm Tarifler":
         st.markdown("<h2>Tüm Tarifler</h2>", unsafe_allow_html=True)
-
-        
-    if st.button("📸 Eski tariflerin thumbnail'lerini güncelle"):
-        all_recipes = worksheet.get_all_records()
-        updated_count = 0
-        for i, row in enumerate(all_recipes, start=2):  # 2. satırdan başlar (1. satır başlıklar)
-            url = row.get("url")
-            current_thumb = row.get("thumbnail_url")
-
-            if url and not current_thumb:  # Thumbnail boşsa çek
-                new_thumb = get_instagram_thumbnail(url)
-                if new_thumb:
-                    # Thumbnail sütunu hangi kolon ise onun indexini girmen lazım.
-                    # Senin append_row sırasına göre: 
-                    # id=1, url=2, baslik=3, yapilisi=4, malzemeler=5, kategori=6, created_at=7, thumbnail_url=8
-                    worksheet.update_cell(i, 8, new_thumb)
-                    updated_count += 1
-
-        st.success(f"✅ {updated_count} tarif için thumbnail güncellendi.")
-        st.cache_data.clear()
-        st.rerun()
-
-
-
-
-
         all_recipes_df = fetch_all_recipes()
         selected_category = st.selectbox("Kategoriye göre filtrele:", ["Tümü"] + TUM_KATEGORILER)
         if selected_category != "Tümü":
@@ -210,10 +154,6 @@ else:
             filtered_df = all_recipes_df
         display_recipe_cards(filtered_df)
     
-
-
-
-
     elif selected_page == "Ne Pişirsem?":
         st.markdown("<h2>Ne Pişirsem?</h2>", unsafe_allow_html=True)
         st.markdown("### Elinizdeki malzemeleri seçin, size uygun tarifleri bulalım!")
