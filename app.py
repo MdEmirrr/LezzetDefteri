@@ -7,6 +7,8 @@ import requests
 from bs4 import BeautifulSoup
 import html
 from streamlit_option_menu import option_menu
+import os
+
 
 # --- STİL (CSS) ---
 st.set_page_config(page_title="Ceren'in Defteri", layout="wide")
@@ -209,3 +211,42 @@ else:
                             st.error("Bu linkten kapak fotoğrafı alınamadı.")
                 else:
                     st.warning("Lütfen en azından Link ve Başlık alanlarını doldurun.")
+
+
+
+####
+
+def save_image_from_url(url, filename):
+    folder = "images"
+    os.makedirs(folder, exist_ok=True)  # klasör yoksa oluşturur
+    filepath = os.path.join(folder, filename)
+
+    try:
+        r = requests.get(url, timeout=10)
+        if r.status_code == 200:
+            with open(filepath, "wb") as f:
+                f.write(r.content)
+            print(f"✅ Kaydedildi: {filepath}")
+            return True
+        else:
+            print(f"⚠️ Hata: {url} indirilemedi")
+            return False
+    except Exception as e:
+        print(f"❌ İndirme hatası: {e}")
+        return False
+    
+
+
+
+#####
+
+def get_recipes_from_gsheet():
+    scope = ["https://spreadsheets.google.com/feeds",
+             "https://www.googleapis.com/auth/drive"]
+    creds = Credentials.from_service_account_file("creds.json", scopes=scope)
+    client = gspread.authorize(creds)
+
+    sheet = client.open("CereninDefteri").worksheet("Tarifler")
+    data = sheet.get_all_records()
+    df = pd.DataFrame(data)
+    return df
