@@ -39,33 +39,38 @@ def fetch_all_recipes():
     return df
 
 def get_instagram_thumbnail(url):
-    """
-    Instagram Reel linkinden kapak fotoğrafı almak için bir proxy servisi kullanır.
-    """
-    try:
-        # Proxy servisinin URL'i. Bu servis Instagram'dan resmi çekip bize veriyor.
-        proxy_url = "https://instareel-proxy.vercel.app/api/data?url="
-        full_url = proxy_url + url
+    import requests
+    import json
 
-        # Proxy servisine GET isteği gönderin
-        response = requests.get(full_url, timeout=10)
-        response.raise_for_status() # HTTP hatalarını kontrol et
+    try:
+        # Streamlit secrets'tan API anahtarını çekiyoruz
+        api_key = st.secrets["instagram"]["api_key"]
+
+        # API sitesindeki bilgilere göre güncellenen host ve url
+        api_host = "instagram20.p.rapidapi.com"
+        api_url = "https://instagram20.p.rapidapi.com/api/instagram/his"
+
+        querystring = {"url": url}
+
+        headers = {
+            "X-RapidAPI-Key": api_key,
+            "X-RapidAPI-Host": api_host
+        }
+
+        response = requests.get(api_url, headers=headers, params=querystring, timeout=10)
+        response.raise_for_status() 
 
         data = response.json()
-        
-        # JSON yanıtından thumbnail URL'ini al
-        thumbnail_url = data.get('thumbnail_url')
-        
-        if thumbnail_url:
-            return thumbnail_url
-        else:
-            return None
-            
-    except requests.exceptions.RequestException as e:
-        print(f"Proxy'den veri çekilirken hata oluştu: {e}")
-        return None
-    except json.JSONDecodeError as e:
-        print(f"JSON yanıtı çözümlenirken hata oluştu: {e}")
+
+        # API'den dönen yanıtın yapısı farklı olabilir, bu kısmı kontrol etmelisiniz.
+        # Genellikle "display_url" veya benzeri bir anahtar içerir.
+        # API'nizin verdiği örnek yanıtı inceleyerek doğru anahtarı bulmanız gerekebilir.
+        thumbnail_url = data.get('media_info', {}).get('display_url')
+
+        return thumbnail_url if thumbnail_url else None
+
+    except (requests.exceptions.RequestException, json.JSONDecodeError) as e:
+        print(f"Hata oluştu: {e}")
         return None
 
 
