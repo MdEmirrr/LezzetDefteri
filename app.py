@@ -7,6 +7,7 @@ import requests
 from bs4 import BeautifulSoup
 import html
 from streamlit_option_menu import option_menu
+import json
 
 # --- STİL (CSS) ---
 st.set_page_config(page_title="Ceren'in Defteri", layout="wide")
@@ -38,14 +39,35 @@ def fetch_all_recipes():
     return df
 
 def get_instagram_thumbnail(url):
+    """
+    Instagram Reel linkinden kapak fotoğrafı almak için bir proxy servisi kullanır.
+    """
     try:
-        response = requests.get(url, timeout=10)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, 'html.parser')
-        meta_tag = soup.find('meta', property='og:image')
-        return meta_tag['content'] if meta_tag else None
-    except requests.exceptions.RequestException:
+        # Proxy servisinin URL'i. Bu servis Instagram'dan resmi çekip bize veriyor.
+        proxy_url = "https://instareel-proxy.vercel.app/api/data?url="
+        full_url = proxy_url + url
+
+        # Proxy servisine GET isteği gönderin
+        response = requests.get(full_url, timeout=10)
+        response.raise_for_status() # HTTP hatalarını kontrol et
+
+        data = response.json()
+        
+        # JSON yanıtından thumbnail URL'ini al
+        thumbnail_url = data.get('thumbnail_url')
+        
+        if thumbnail_url:
+            return thumbnail_url
+        else:
+            return None
+            
+    except requests.exceptions.RequestException as e:
+        print(f"Proxy'den veri çekilirken hata oluştu: {e}")
         return None
+    except json.JSONDecodeError as e:
+        print(f"JSON yanıtı çözümlenirken hata oluştu: {e}")
+        return None
+
 
 def display_recipe_cards(df):
     if df.empty:
