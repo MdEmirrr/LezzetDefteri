@@ -39,19 +39,19 @@ def fetch_all_recipes():
     return df
 
 def get_instagram_thumbnail(url):
-    import requests
-    import json
-
+    """
+    RapidAPI üzerinden bir Instagram medya API'si kullanarak kapak fotoğrafı çeker.
+    """
     try:
         # Streamlit secrets'tan API anahtarını çekiyoruz
         api_key = st.secrets["instagram"]["api_key"]
-
-        # API sitesindeki bilgilere göre güncellenen host ve url
-        api_host = "instagram20.p.rapidapi.com"
-        api_url = "https://instagram20.p.rapidapi.com/api/instagram/his"
-
+        
+        # API sitesinden alınan bilgilere göre güncellenen host ve url
+        api_host = "instagram120.p.rapidapi.com"
+        api_url = "https://instagram120.p.rapidapi.com/api/instagram/hls"
+        
         querystring = {"url": url}
-
+        
         headers = {
             "X-RapidAPI-Key": api_key,
             "X-RapidAPI-Host": api_host
@@ -61,16 +61,24 @@ def get_instagram_thumbnail(url):
         response.raise_for_status() 
 
         data = response.json()
-
-        # API'den dönen yanıtın yapısı farklı olabilir, bu kısmı kontrol etmelisiniz.
-        # Genellikle "display_url" veya benzeri bir anahtar içerir.
-        # API'nizin verdiği örnek yanıtı inceleyerek doğru anahtarı bulmanız gerekebilir.
-        thumbnail_url = data.get('media_info', {}).get('display_url')
+        
+        # API'den dönen yanıtın yapısı farklı olabilir. 
+        # API dokümantasyonunuzu veya örnek yanıtı inceleyerek doğru anahtarı bulmanız gerekir.
+        # Genellikle "thumbnail_url" veya "display_url" gibi bir anahtar içerir.
+        # Varsayılan olarak "thumbnail_url" anahtarını deneyelim.
+        thumbnail_url = data.get('thumbnail_url')
+        
+        # Eğer thumbnail_url yoksa, video dosyasından ilk karesini almaya çalışabiliriz.
+        # Bu, API'nin yanıtına bağlıdır.
+        if not thumbnail_url:
+            media_info = data.get('media_info', [])
+            if media_info:
+                thumbnail_url = media_info[0].get('thumbnail_url')
 
         return thumbnail_url if thumbnail_url else None
-
+            
     except (requests.exceptions.RequestException, json.JSONDecodeError) as e:
-        print(f"Hata oluştu: {e}")
+        st.error(f"API isteğinde hata oluştu. Lütfen URL'yi kontrol edin. Hata: {e}")
         return None
 
 
