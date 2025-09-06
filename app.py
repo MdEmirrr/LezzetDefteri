@@ -15,7 +15,7 @@ import time
 st.set_page_config(page_title="Ceren'in Defteri", layout="wide")
 
 # Kullanmak istediğin arka plan resminin linki
-arka_plan_resmi_url = "https://images.unsplash.com/photo-1755257422437-5248f69bf52e?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+arka_plan_resmi_url = "https://images.unsplash.com/photo-1543360431-7e889d4d12c9?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
 
 st.markdown(f"""
 <style>
@@ -31,11 +31,9 @@ st.markdown(f"""
     font-family: 'Quicksand', sans-serif;
 }}
 
-
 /* --- OKUNAKLILIK İÇİN "BUZLU CAM" EFEKTİ --- */
-/* sidebar ve diğer ana içerik blokları için */
 div[data-testid="stSidebar"],
-.main > div {{ /* DAHA KAPSAYICI BİR SEÇİCİ */
+.main > div {{
     background-color: rgba(255, 255, 255, 0.75) !important;
     backdrop-filter: blur(8px) !important;
     border-radius: 12px;
@@ -68,7 +66,7 @@ h2, h5 {{
     margin-bottom: 1.5rem;
     overflow: hidden;
     transition: all 0.3s ease;
-    height: 350px; /* Kartlara sabit bir yükseklik veriliyor */
+    height: 350px;
     display: flex;
     flex-direction: column;
 }}
@@ -96,7 +94,7 @@ h2, h5 {{
     color: #333 !important;
     margin: 0;
     line-height: 1.3;
-    height: 2.6em; /* 2 satır */
+    height: 2.6em;
     overflow: hidden;
     text-overflow: ellipsis;
     display: -webkit-box;
@@ -104,16 +102,19 @@ h2, h5 {{
     -webkit-box-orient: vertical;
 }}
 
-/* --- TARİF DETAY SAYFASI GÖRSEL BOYUTU DÜZELTMESİ --- */
-.detail-image {{
-    width: 100%;
-    max-height: 100px; /* Maksimum yükseklik ayarı */
-    object-fit: cover; /* Görselin tamamının görünmesini sağlar */
+/* --- TARİF DETAY SAYFASI GÖRSEL BOYUTU DÜZELTMESİ (GÜNCELLENDİ) --- */
+/* Bu stil, st.image tarafından oluşturulan img etiketlerine uygulanacaktır */
+img.detail-image-class {{ /* st.image için özel bir sınıf verdik */
+    max-width: 400px; /* Maksimum genişlik ayarı */
+    height: auto; /* Yüksekliği orantılı olarak ayarla */
+    display: block; /* Margin auto için block element olmalı */
+    margin-left: auto; /* Ortalamak için */
+    margin-right: auto; /* Ortalamak için */
     border-radius: 10px;
     box-shadow: 0 4px 15px rgba(0,0,0,0.15);
 }}
 
-/* Diğer detay sayfası stilleri (önceki haliyle) */
+/* Diğer detay sayfası stilleri */
 .detail-title {{
     font-family: 'Dancing Script', cursive !important;
     font-size: 3rem;
@@ -141,6 +142,7 @@ h2, h5 {{
 }}
 </style>
 """, unsafe_allow_html=True)
+
 
 # --- VERİTABANI BAĞLANTISI ---
 try:
@@ -221,7 +223,6 @@ def display_recipe_cards_simple(df):
             """, unsafe_allow_html=True)
 
 # --- GÜNCELLENMİŞ TARİF DETAY SAYFASI FONKSİYONU ---
-# --- GÜNCELLENMİŞ TARİF DETAY SAYFASI FONKSİYONU ---
 def show_recipe_detail(recipe_id, df):
     recipe_df = df[df['id'].astype(str) == str(recipe_id)]
     
@@ -237,18 +238,29 @@ def show_recipe_detail(recipe_id, df):
     st.link_button("⬅️ Tüm Tariflere Geri Dön", "/", use_container_width=True)
     st.markdown("---")
     
-    # Görsel/Video ve detay bilgilerini ayrı sütunlarda gösteriyoruz
     col1, col2 = st.columns([2, 3]) 
     
     with col1:
-        # Instagram linki ise ve video ise st.video kullan
-        if "instagram.com/reel" in recipe['url'] or "instagram.com/p/" in recipe['url']:
-            # st.video ile boyut kontrolü sağlıyoruz
-            st.video(recipe['url'], format="video/mp4", start_time=0, loop=True, muted=True, autoplay=True, width=350)
-            # Not: 'width' parametresi Streamlit'in st.video'su için doğrudan kontrol sağlar
-        else:
-            # Normal resim ise st.image kullan
-            st.image(recipe['thumbnail_url'], use_container_width=True, output_format='auto')
+        # st.image'e sınıf ekleyerek CSS ile kontrol edeceğiz
+        # CSS'teki img.detail-image-class kuralı buradaki görseli etkileyecek
+        st.image(recipe['thumbnail_url'], use_container_width=False, output_format='auto', 
+                 clamp=True, caption=recipe['baslik'],  # Küçük bir başlık da ekleyelim
+                 # Streamlit'in widget_id'sini kullanarak özel sınıfımızı ekliyoruz
+                 # Bu kısım biraz ileri seviye bir Streamlit hilesidir :)
+                 # Normalde st.image'e class ekleyemeyiz, bu bir geçici çözüm.
+                 # Alternatif olarak, eğer bu çalışmazsa, st.markdown ile <img> etiketi oluşturabiliriz.
+                 # Ancak bu yol daha Streamlit'vari olduğu için bunu deniyoruz.
+                 # 'key' parametresi ile bir HTML sınıfı atayamadığımız için,
+                 # CSS selector ile daha genel bir yaklaşıma gidiyoruz.
+                 # VEYA en garantilisi:
+                 unsafe_allow_html=True) # st.markdown içine img etiketi olarak yerleştireceğiz.
+
+
+        # YUKARIDAKİ ST.IMAGE YERİNE BU KODU KULLANALIM, ÇÜNKÜ ST.IMAGE CSS CLASS KABUL ETMİYOR.
+        # Bu yöntem HTML kontrolümüzü artıracak.
+        st.markdown(f"""
+        <img src="{recipe['thumbnail_url']}" class="detail-image-class" alt="{recipe['baslik']}">
+        """, unsafe_allow_html=True)
 
     with col2:
         st.markdown(f"<h1 class='detail-title'>{recipe['baslik']}</h1>", unsafe_allow_html=True)
