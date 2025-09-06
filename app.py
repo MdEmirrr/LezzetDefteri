@@ -14,16 +14,19 @@ from streamlit_lottie import st_lottie
 
 # --- GÖRSEL AYARLAR VE STİL ---
 st.set_page_config(page_title="Ceren'in Defteri", layout="wide")
-
+arka_plan_resmi_url = "https://plus.unsplash.com/premium_photo-1663099777846-62e0c092ce0b?q=80&w=1349&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
 st.markdown(f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Quicksand:wght@400;500;600&display=swap');v
 
 /* --- GENEL SAYFA AYARLARI --- */
 .stApp {{
-    background-color: #F8F7F4;
-    font-family: 'Quicksand', sans-serif;
+    background-image: url("{arka_plan_resmi_url}");
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
 }}
 
 /* --- SOL FİLTRE PANELİ (SIDEBAR) STİLLERİ --- */
@@ -78,11 +81,11 @@ h1 {{
 }}
 .card-metadata {{
     display: flex;
-    flex-direction: column; /* İkonları alt alta sırala */
-    gap: 8px; /* Aralarındaki boşluk */
+    flex-direction: column;
+    gap: 8px;
     font-size: 0.8rem;
     color: #777;
-    align-items: flex-start; /* Sola hizala */
+    align-items: flex-start;
 }}
 .card-metadata span {{
     display: flex;
@@ -115,7 +118,6 @@ def fetch_all_recipes():
     df = pd.DataFrame(records)
     if not df.empty:
         df = df[df['id'] != ''].copy()
-        # Hazırlanma süresini sayısal yapalım
         if 'hazirlanma_suresi' in df.columns:
             df['hazirlanma_suresi'] = pd.to_numeric(df['hazirlanma_suresi'], errors='coerce').fillna(0).astype(int)
     return df
@@ -143,16 +145,38 @@ def load_lottieurl(url: str):
     if r.status_code != 200: return None
     return r.json()
 
-# --- SADELEŞTİRİLMİŞ FİLTRE PANELİ FONKSİYONU ---
+# --- GÜNCELLENMİŞ FİLTRE PANELİ FONKSİYONU ---
 def build_sidebar(df):
     with st.sidebar:
         st.markdown("<h2>Filtrele</h2>", unsafe_allow_html=True)
+        
+        # Kategori Filtresi
         all_categories = sorted(df['kategori'].unique())
         selected_categories = st.multiselect("Yemek Türü", options=all_categories, placeholder="Kategori seçin...")
-    
+        st.write("---")
+        
+        # Hazırlanma Süresi Filtresi
+        min_süre = int(df['hazirlanma_suresi'].min())
+        max_süre = int(df['hazirlanma_suresi'].max())
+        
+        selected_süre_aralığı = st.slider(
+            "Hazırlanma Süresi (dakika aralığı)",
+            min_value=min_süre,
+            max_value=max_süre,
+            value=(min_süre, max_süre) # Başlangıçta tüm aralığı seçer
+        )
+
+    # Filtreleme Mantığı
     filtered_df = df.copy()
     if selected_categories:
         filtered_df = filtered_df[filtered_df['kategori'].isin(selected_categories)]
+        
+    # Süreye göre filtrele
+    min_secilen, max_secilen = selected_süre_aralığı
+    filtered_df = filtered_df[
+        (filtered_df['hazirlanma_suresi'] >= min_secilen) & 
+        (filtered_df['hazirlanma_suresi'] <= max_secilen)
+    ]
         
     return filtered_df
 
@@ -166,7 +190,8 @@ def display_recipe_cards_final(df):
     st.write("---")
     
     cols = st.columns(4)
-    for i, recipe in df.iterrows():
+    # i değişkeni yerine recipe'nin kendi index'ini kullanalım
+    for i, recipe in enumerate(df.to_dict('records')):
         col = cols[i % 4]
         with col:
             st.markdown(f"""
@@ -205,7 +230,11 @@ selected_page = option_menu(
 if selected_page == "Tüm Tarifler":
     all_recipes_df = fetch_all_recipes()
     filtered_recipes = build_sidebar(all_recipes_df)
-    display_recipe_cards_final(filtered_recipes)
+    
+    # KRONOLOJİK SIRALAMA BURADA YAPILIYOR
+    sorted_recipes = filtered_recipes.sort_values(by='id', ascending=False)
+    
+    display_recipe_cards_final(sorted_recipes)
 
 elif selected_page == "Ne Pişirsem?":
     st.markdown("<h2>Ne Pişirsem?</h2>", unsafe_allow_html=True)
@@ -226,7 +255,9 @@ elif selected_page == "Ne Pişirsem?":
         for ingredient in selected_ingredients:
             filtered_df = filtered_df[filtered_df['malzemeler'].str.contains(ingredient, case=False, na=False)]
         
-        display_recipe_cards_final(filtered_df)
+        # Malzemeye göre bulunan tarifleri de en yeniden eskiye sıralayalım
+        sorted_recipes = filtered_df.sort_values(by='id', ascending=False)
+        display_recipe_cards_final(sorted_recipes)
     else:
         st.info("Sonuçları görmek için yukarıdan malzeme seçin.")
 
@@ -251,6 +282,7 @@ elif selected_page == "Yeni Tarif Ekle":
                 with st.spinner("İşleniyor..."):
                     thumbnail_url = get_instagram_thumbnail(insta_url)
                     if thumbnail_url:
+                        # GÜNCELLENMİŞ SÜTUN SIRASI
                         new_row = [
                             datetime.now().strftime("%Y%m%d%H%M%S"), 
                             insta_url, 
@@ -258,7 +290,7 @@ elif selected_page == "Yeni Tarif Ekle":
                             yapilisi, 
                             malzemeler, 
                             kategori, 
-                            datetime.now().strftime("%Y-%m-%d %H:%M%S"), 
+                            datetime.now().strftime("%Y-%m-%d %H%M:%S"), 
                             thumbnail_url,
                             yemek_zorlugu,
                             hazirlanma_suresi
