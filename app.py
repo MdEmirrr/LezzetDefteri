@@ -92,14 +92,26 @@ h2, h5 {{
     font-weight: 700;
     font-size: 1.1rem;
     color: #333 !important;
-    margin: 0;
+    margin: 0 0 0.5rem 0; /* Altına boşluk ekledik */
     line-height: 1.3;
-    height: 2.6em;
+    height: 2.6em; /* 2 satır */
     overflow: hidden;
     text-overflow: ellipsis;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+}}
+
+.card-metadata {{
+    display: flex;
+    flex-direction: row; /* Yan yana sırala */
+    justify-content: space-between; /* İki uca yasla */
+    align-items: center;
+    font-size: 0.8rem;
+    color: #777;
+    margin-top: auto; /* KARTIN EN ALTINA İTMEK İÇİN SİHİRLİ KOD */
+    padding-top: 0.5rem; /* Başlıkla arasında biraz boşluk olsun */
+    border-top: 1px solid #F0F0F0; /* Üstüne ince bir çizgi ekle */
 }}
 
 /* --- TARİF DETAY SAYFASI GÖRSEL BOYUTU DÜZELTMESİ (GÜNCELLENDİ) --- */
@@ -201,12 +213,14 @@ def build_sidebar(df):
     filtered_df = filtered_df[(filtered_df['hazirlanma_suresi'] >= min_secilen) & (filtered_df['hazirlanma_suresi'] <= max_secilen)]
     return filtered_df
 
+# --- GÜNCELLENMİŞ ANA SAYFA KARTI GÖRÜNTÜLEME FONKSİYONU ---
 def display_recipe_cards_simple(df):
     if df.empty:
         st.warning("Bu kriterlere uygun tarif bulunamadı.")
         return
     st.markdown(f"**{len(df)}** adet tarif bulundu.")
     st.write("---")
+    
     cols = st.columns(4)
     for i, recipe in enumerate(df.to_dict('records')):
         col = cols[i % 4]
@@ -217,7 +231,18 @@ def display_recipe_cards_simple(df):
                     <img src="{recipe['thumbnail_url']}" class="card-image">
                     <div class="card-body">
                         <h3>{html.escape(str(recipe.get('baslik','')))}</h3>
-                    </div>
+                        
+                        <div class="card-metadata">
+                            <span title="Zorluk">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.2,10.2l-1-5A1,1,0,0,0,18.22,4H5.78a1,1,0,0,0-1,.81l-1,5a1,1,0,0,0,0,.38V18a2,2,0,0,0,2,2H18a2,2,0,0,0,2-2V10.58A1,1,0,0,0,20.2,10.2ZM5.2,6H18.8l.6,3H4.6ZM18,18H6V12H18Z"/></svg>
+                                <b>{recipe.get('yemek_zorlugu', 'N/A')}</b>
+                            </span>
+                            <span title="Süre">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12,2A10,10,0,1,0,22,12,10,10,0,0,0,12,2Zm0,18a8,8,0,1,1,8-8A8,8,0,0,1,12,20Zm4-9.5H12.5V7a1,1,0,0,0-2,0v5.5a1,1,0,0,0,1,1H16a1,1,0,0,0,0-2Z"/></svg>
+                                <b>{recipe.get('hazirlanma_suresi', 0)} dk</b>
+                            </span>
+                        </div>
+                        </div>
                 </div>
             </a>
             """, unsafe_allow_html=True)
