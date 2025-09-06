@@ -105,10 +105,10 @@ h2, h5 {{
 
 /* --- TARİF DETAY SAYFASI GÖRSEL BOYUTU DÜZELTMESİ --- */
 .detail-image {{
-    width: 10%;
-    max-height: 35px; /* Maksimum yükseklik ayarı */
+    width: 100%;
+    max-height: 100px; /* Maksimum yükseklik ayarı */
     object-fit: cover; /* Görselin tamamının görünmesini sağlar */
-    border-radius: 1px;
+    border-radius: 10px;
     box-shadow: 0 4px 15px rgba(0,0,0,0.15);
 }}
 
