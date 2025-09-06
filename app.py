@@ -195,14 +195,22 @@ def display_recipe_cards(df):
         return
     st.markdown(f"**{len(df)}** adet tarif bulundu.")
     st.write("")
-    cols = st.columns(4)
+    
+    # Kartların daha düzenli görünmesi için sütun sayısını 3 yapabiliriz
+    cols = st.columns(3) 
     recipes_list = df.to_dict('records')
+
     for i, recipe in enumerate(reversed(recipes_list)):
         if pd.notna(recipe.get('thumbnail_url')) and recipe.get('thumbnail_url'):
-            col = cols[i % 4]
+            col = cols[i % 3] # Sütun sayısını 3 olarak güncelledik
             with col:
                 st.markdown(f'<div class="recipe-card">', unsafe_allow_html=True)
-                st.markdown(f"""<a href="{recipe['url']}" target="_blank"><img src="{recipe['thumbnail_url']}" class="card-image"/></a>""", unsafe_allow_html=True)
+                st.markdown(
+                    f"""<a href="{recipe['url']}" target="_blank">
+                           <img src="{recipe['thumbnail_url']}" class="card-image"/>
+                       </a>""",
+                    unsafe_allow_html=True,
+                )
                 with st.container():
                     st.markdown(f"""<div class="card-body"><h3>{html.escape(str(recipe.get('baslik','')))}</h3><div class="category-badge">{html.escape(str(recipe.get('kategori','')))}</div></div>""", unsafe_allow_html=True)
                     with st.expander("Detayları Gör"):
@@ -219,16 +227,28 @@ def display_recipe_cards(df):
                                 st.session_state.recipe_to_edit_id = recipe['id']
                                 st.rerun()
                         with btn_cols[1]:
+                            # --- GÜNCELLENEN SİLME KODU BURADA ---
                             if st.button("❌ Sil", key=f"delete_{recipe['id']}", use_container_width=True):
                                 try:
                                     cell = worksheet.find(str(recipe['id']))
-                                    worksheet.delete_rows(cell.row)
+                                    # ÖNEMLİ KONTROL: Hücrenin bulunduğundan emin ol
+                                    if cell:
+                                        worksheet.delete_rows(cell.row)
+                                        st.success(f"'{recipe['baslik']}' tarifi silindi!")
+                                        st.cache_data.clear()
+                                        time.sleep(1) # Sayfanın yeniden çizilmeden önce 1 saniye bekle
+                                        st.rerun()
+                                    else:
+                                        # Eğer hücre bulunamazsa (belki başka bir yerden silinmiştir)
+                                        st.warning("Bu tarif veritabanında bulunamadı. Sayfa yenileniyor.")
+                                        st.cache_data.clear()
+                                        st.rerun()
+                                # gspread hatası veya başka bir hata için genel bir except bloğu
+                                except Exception as e:
+                                    st.error(f"Silme sırasında bir hata oluştu: {e}. Sayfa yenileniyor.")
                                     st.cache_data.clear()
                                     st.rerun()
-                                except gspread.CellNotFound:
-                                    st.error("Tarif bulunamadı, sayfa yenileniyor.")
-                                    st.cache_data.clear()
-                                    st.rerun()
+                            # --- GÜNCELLEME SONA ERDİ ---
                 st.markdown('</div>', unsafe_allow_html=True)
 
 def load_lottieurl(url: str):
