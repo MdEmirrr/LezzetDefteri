@@ -38,60 +38,55 @@ def fetch_all_recipes():
         df = df[df['id'] != ''].copy()
     return df
 
-# Bu fonksiyonu mevcut get_instagram_thumbnail fonksiyonunuzla değiştirin.
-# Herhangi bir API anahtarına ihtiyaç duymaz.
+# Bu fonksiyonu mevcut get_instagram_thumbnail fonksiyonunuzla tamamen değiştirin.
+# Artık Facebook token'ına veya App Review'e ihtiyacı YOKTUR.
 def get_instagram_thumbnail(url):
     """
     Instagram linkinden kapak fotoğrafı URL'sini çeker.
-    Önce Instagram'ın oEmbed API'sini dener, olmazsa sayfa HTML'ini kazır.
+    Önce gizli bir JSON endpoint'ini dener, olmazsa HTML'i kazır.
     """
-    # Strateji 1: Instagram'ın oEmbed (gömme) API'sini kullanmak. Bu en güvenilir yöntemdir.
+    # URL'nin sonundaki eğik çizgiyi ve sorgu parametrelerini temizleyelim.
+    clean_url = url.split('?')[0]
+    if clean_url.endswith('/'):
+        clean_url = clean_url[:-1]
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'accept-language': 'en-US,en;q=0.9'
+    }
+
+    # Strateji 1: Gizli JSON Endpoint'i Kullanmak (En İyi Yöntem)
     try:
-        # oEmbed endpoint'ine istek atıyoruz.
-        api_url = f"https://graph.facebook.com/v19.0/instagram_oembed?url={url}&fields=thumbnail_url"
-        
-        # Facebook Geliştirici hesabınızdan alacağınız bir Access Token'a ihtiyacınız var.
-        # Bu token'ı Streamlit Secrets'a ekleyin.
-        # Örnek: secrets.toml dosyanızda [facebook] access_token = "TOKENINIZ"
-        access_token = st.secrets["facebook"]["access_token"]
-        
-        response = requests.get(f"{api_url}&access_token={access_token}", timeout=10)
-        response.raise_for_status() # Hata varsa (4xx, 5xx) exception fırlat
+        json_url = f"{clean_url}/?__a=1&__d=dis"
+        response = requests.get(json_url, headers=headers, timeout=10)
+        response.raise_for_status()
         data = response.json()
         
-        thumbnail = data.get("thumbnail_url")
+        # JSON yapısı içinde görselin URL'sini arıyoruz.
+        thumbnail = data.get("graphql", {}).get("shortcode_media", {}).get("display_url")
         if thumbnail:
-            st.success("Kapak fotoğrafı oEmbed API ile başarıyla bulundu!")
             return thumbnail
             
-    except requests.exceptions.RequestException as e:
-        st.warning(f"oEmbed API denemesi başarısız oldu. Hata: {e}. Alternatif yöntem deneniyor...")
-        pass # Hata olursa ikinci stratejiye geç
+        thumbnail = data.get("items", [{}])[0].get("image_versions2", {}).get("candidates", [{}])[0].get("url")
+        if thumbnail:
+            return thumbnail
 
-    # Strateji 2: HTML'den 'og:image' meta etiketini kazımak (Fallback yöntemi)
+    except (requests.exceptions.RequestException, json.JSONDecodeError, IndexError, KeyError):
+        pass # Bu yöntem başarısız olursa ikinci stratejiye geç.
+
+    # Strateji 2: HTML'den 'og:image' meta etiketini kazımak (Facebook'un da önerdiği yöntem)
     try:
-        # Instagram'ın basit bir bot olmadığımızı düşünmesi için User-Agent ekliyoruz.
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-        response = requests.get(url, headers=headers, timeout=10)
+        response = requests.get(clean_url, headers=headers, timeout=10)
         response.raise_for_status()
-
         soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # 'og:image' meta etiketi genellikle sayfanın önizleme resmini içerir.
         meta_tag = soup.find('meta', property='og:image')
-        
         if meta_tag and meta_tag.get('content'):
-            st.success("Kapak fotoğrafı HTML kazıma ile başarıyla bulundu!")
             return meta_tag['content']
-            
-    except requests.exceptions.RequestException as e:
-        st.error(f"HTML kazıma sırasında hata oluştu: {e}")
+    except requests.exceptions.RequestException:
+        st.error(f"Instagram'dan kapak fotoğrafı alınamadı. Linkin herkese açık olduğundan emin olun. URL: {clean_url}")
         return None
         
-    # Eğer iki yöntem de başarısız olursa
-    st.error("Her iki yöntem de kapak fotoğrafını bulamadı. Link gizli veya geçersiz olabilir.")
+    st.error(f"Her iki yöntem de kapak fotoğrafını bulamadı. URL: {clean_url}")
     return None
 
 
