@@ -12,16 +12,17 @@ import re
 import time
 from streamlit_lottie import st_lottie
 
-# --- GÖRSEL AYARLAR VE STİL ---
-st.set_page_config(page_title="Ceren'in Defteri", layout="wide")
+# --- YENİ ARKA PLAN RESMİ İLE GÜNCELLENMİŞ STİL (CSS) ---
+
+# Kullanmak istediğin yeni arka plan resminin linki
 arka_plan_resmi_url = "https://plus.unsplash.com/premium_photo-1663099777846-62e0c092ce0b?q=80&w=1349&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+
 st.markdown(f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Quicksand:wght@400;500;600&display=swap');v
 
-/* --- GENEL SAYFA AYARLARI --- */
+/* --- YENİ ARKA PLAN RESMİ AYARLARI --- */
 .stApp {{
     background-image: url("{arka_plan_resmi_url}");
     background-size: cover;
@@ -29,22 +30,28 @@ st.markdown(f"""
     background-attachment: fixed;
 }}
 
-/* --- SOL FİLTRE PANELİ (SIDEBAR) STİLLERİ --- */
+/* --- OKUNAKLILIK İÇİN "BUZLU CAM" EFEKTİ --- */
+div[data-testid="stVerticalBlock"] > div[style*="border-radius"],
+div[data-testid="stForm"],
 [data-testid="stSidebar"] {{
-    background-color: #FFFFFF;
-    border-right: 1px solid #EAEAEA;
-}}
-[data-testid="stSidebar"] h2 {{
-    font-family: 'Quicksand', sans-serif;
-    font-weight: 700;
-    color: #333;
+    background-color: rgba(255, 255, 255, 0.65) !important; /* Şeffaflığı biraz artırdık */
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
 }}
 
 /* --- ANA BAŞLIK --- */
 h1 {{
-    font-family: 'Dancing+Script', cursive !important;
-    color: #333 !important;
+    font-family: 'Dancing Script', cursive !important;
+    color: #FFFFFF !important; /* Arka plan koyu olabileceğinden beyaz daha iyi */
+    text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.6); /* Gölgeyi belirginleştirdik */
     text-align: center;
+}}
+
+/* Diğer başlıklar ve metinler */
+h2, h3, h5 {{
+    font-family: 'Quicksand', sans-serif !important;
+    color: #333 !important;
 }}
 
 /* --- TARİF KARTLARI --- */
