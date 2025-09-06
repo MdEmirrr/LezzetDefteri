@@ -18,7 +18,7 @@ st.set_page_config(page_title="Ceren'in Defteri", layout="wide")
 
 # Beğendiğiniz bir arka plan resminin linkini buraya yapıştırın.
 # Telifsiz resimler için: unsplash.com, pexels.com
-arka_plan_resmi = "https://images.unsplash.com/photo-1541172238217-86c2d0f353fd?q=80&w=2574&auto=format&fit=crop"
+arka_plan_resmi = "https://unsplash.com/photos/white-ceramic-mug-near-white-flowers-4RTAF3Z-0zM"
 
 # --- YENİ STİL (CSS) ---
 st.markdown(f"""
