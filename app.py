@@ -14,24 +14,42 @@ import time
 # --- GÖRSEL AYARLAR VE STİL ---
 st.set_page_config(page_title="Ceren'in Defteri", layout="wide")
 
+# Kullanmak istediğin arka plan resminin linki
+arka_plan_resmi_url = "https://images.unsplash.com/photo-1543360431-7e889d4d12c9?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+
 st.markdown(f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');
 
-/* --- GENEL SAYFA AYARLARI --- */
+/* --- GENEL SAYFA ARKA PLAN AYARLARI --- */
 .stApp {{
-    background-color: #F8F7F4;
+    background-image: url("{https://images.unsplash.com/photo-1632837208522-19ef8867cd21?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D}");
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
     font-family: 'Quicksand', sans-serif;
 }}
-[data-testid="stSidebar"] {{
-    background-color: #FFFFFF;
-    border-right: 1px solid #EAEAEA;
+
+/* --- OKUNAKLILIK İÇİN "BUZLU CAM" EFEKTİ --- */
+/* sidebar ve diğer ana içerik blokları için */
+div[data-testid="stSidebar"],
+section.main .block-container {{
+    background-color: rgba(255, 255, 255, 0.75) !important; /* Daha şeffaf ve beyaz */
+    backdrop-filter: blur(8px) !important; /* Hafif bulanıklık */
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    margin-top: 2rem;
+    margin-bottom: 2rem;
 }}
+
+/* --- BAŞLIKLAR --- */
 h1 {{
-    font-family: 'Dancing+Script', cursive !important;
+    font-family: 'Dancing Script', cursive !important;
     color: #333 !important;
     text-align: center;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
 }}
 h2, h5 {{
     font-family: 'Quicksand', sans-serif !important;
@@ -39,7 +57,7 @@ h2, h5 {{
     font-weight: 700;
 }}
 
-/* --- ANA SAYFA KART HİZALAMA DÜZELTMESİ --- */
+/* --- ANA SAYFA KART HİZALAMASI (Önceki düzeltmeler korunuyor) --- */
 .recipe-card-link {{ text-decoration: none; }}
 .recipe-card {{
     background-color: #FFFFFF !important;
@@ -49,9 +67,9 @@ h2, h5 {{
     margin-bottom: 1.5rem;
     overflow: hidden;
     transition: all 0.3s ease;
-    height: 350px; /* Kartlara sabit bir yükseklik veriyoruz */
-    display: flex; /* İçeriği esnek bir şekilde yönetmek için */
-    flex-direction: column; /* İçeriği dikeyde sırala */
+    height: 350px; /* Kartlara sabit bir yükseklik veriliyor */
+    display: flex;
+    flex-direction: column;
 }}
 .recipe-card:hover {{
     transform: translateY(-5px);
@@ -62,11 +80,11 @@ h2, h5 {{
     height: 220px;
     object-fit: cover;
     display: block;
-    flex-shrink: 0; /* Resmin küçülmesini engelle */
+    flex-shrink: 0;
 }}
 .card-body {{ 
     padding: 1rem; 
-    flex-grow: 1; /* Kalan boşluğu doldurmasını sağlar */
+    flex-grow: 1;
     display: flex;
     flex-direction: column;
 }}
@@ -76,27 +94,30 @@ h2, h5 {{
     font-size: 1.1rem;
     color: #333 !important;
     margin: 0;
-    /* Uzun başlıkları iki satıra kadar göster, sonra ... koy */
     line-height: 1.3;
-    height: 2.6em; /* 2 satır (1.3 * 2) */
+    height: 2.6em; /* 2 satır */
     overflow: hidden;
     text-overflow: ellipsis;
     display: -webkit-box;
-    -webkit-line-clamp: 2; /* Maksimum 2 satır */
+    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
 }}
 
-/* --- TARİF DETAY SAYFASI STİLLERİ --- */
+/* --- TARİF DETAY SAYFASI GÖRSEL BOYUTU DÜZELTMESİ --- */
 .detail-image {{
     width: 100%;
+    max-height: 350px; /* Maksimum yükseklik ayarı */
+    object-fit: contain; /* Görselin tamamının görünmesini sağlar */
     border-radius: 10px;
     box-shadow: 0 4px 15px rgba(0,0,0,0.15);
 }}
+
+/* Diğer detay sayfası stilleri (önceki haliyle) */
 .detail-title {{
     font-family: 'Dancing Script', cursive !important;
     font-size: 3rem;
     color: #333;
-    margin-top: 0; /* Resimle hizalamak için boşluğu sıfırla */
+    margin-top: 0;
 }}
 .detail-metadata {{
     display: flex;
