@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 import html
 from streamlit_option_menu import option_menu
 import json
+import re
 
 # --- STİL (CSS) ---
 st.set_page_config(page_title="Ceren'in Defteri", layout="wide")
