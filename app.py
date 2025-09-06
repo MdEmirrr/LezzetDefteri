@@ -15,7 +15,7 @@ import time
 st.set_page_config(page_title="Ceren'in Defteri", layout="wide")
 
 # Kullanmak istediğin arka plan resminin linki
-arka_plan_resmi_url = "https://images.unsplash.com/photo-1632837208522-19ef8867cd21?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+arka_plan_resmi_url = "https://images.unsplash.com/photo-1755257422437-5248f69bf52e?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
 
 st.markdown(f"""
 <style>
