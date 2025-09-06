@@ -31,12 +31,13 @@ st.markdown(f"""
     font-family: 'Quicksand', sans-serif;
 }}
 
+
 /* --- OKUNAKLILIK İÇİN "BUZLU CAM" EFEKTİ --- */
 /* sidebar ve diğer ana içerik blokları için */
 div[data-testid="stSidebar"],
-section.main .block-container {{
-    background-color: rgba(255, 255, 255, 0.75) !important; /* Daha şeffaf ve beyaz */
-    backdrop-filter: blur(8px) !important; /* Hafif bulanıklık */
+.main > div {{ /* DAHA KAPSAYICI BİR SEÇİCİ */
+    background-color: rgba(255, 255, 255, 0.75) !important;
+    backdrop-filter: blur(8px) !important;
     border-radius: 12px;
     padding: 2rem;
     box-shadow: 0 4px 20px rgba(0,0,0,0.08);
@@ -220,6 +221,7 @@ def display_recipe_cards_simple(df):
             """, unsafe_allow_html=True)
 
 # --- GÜNCELLENMİŞ TARİF DETAY SAYFASI FONKSİYONU ---
+# --- GÜNCELLENMİŞ TARİF DETAY SAYFASI FONKSİYONU ---
 def show_recipe_detail(recipe_id, df):
     recipe_df = df[df['id'].astype(str) == str(recipe_id)]
     
@@ -235,14 +237,20 @@ def show_recipe_detail(recipe_id, df):
     st.link_button("⬅️ Tüm Tariflere Geri Dön", "/", use_container_width=True)
     st.markdown("---")
     
-    col1, col2 = st.columns([2, 3]) # Sütun oranlarını ayarla
+    # Görsel/Video ve detay bilgilerini ayrı sütunlarda gösteriyoruz
+    col1, col2 = st.columns([2, 3]) 
     
     with col1:
-        # HATA DÜZELTMESİ: use_column_width yerine use_container_width kullanılıyor
-        st.image(recipe['thumbnail_url'], use_container_width=True, output_format='auto')
+        # Instagram linki ise ve video ise st.video kullan
+        if "instagram.com/reel" in recipe['url'] or "instagram.com/p/" in recipe['url']:
+            # st.video ile boyut kontrolü sağlıyoruz
+            st.video(recipe['url'], format="video/mp4", start_time=0, loop=True, muted=True, autoplay=True, width=350)
+            # Not: 'width' parametresi Streamlit'in st.video'su için doğrudan kontrol sağlar
+        else:
+            # Normal resim ise st.image kullan
+            st.image(recipe['thumbnail_url'], use_container_width=True, output_format='auto')
 
     with col2:
-        # TÜM BİLGİLER BU SÜTUNUN İÇİNE TAŞINDI
         st.markdown(f"<h1 class='detail-title'>{recipe['baslik']}</h1>", unsafe_allow_html=True)
         st.markdown(f"""
         <div class="detail-metadata">
@@ -257,6 +265,7 @@ def show_recipe_detail(recipe_id, df):
         
         st.markdown("<div class='detail-section'><h5>Yapılışı</h5></div>", unsafe_allow_html=True)
         st.markdown(f"<div class='detail-section-text'>{recipe.get('yapilisi', 'Eklenmemiş')}</div>", unsafe_allow_html=True)
+
 
 # --- ANA SAYFA GÖRÜNÜMÜ ---
 def show_main_page():
