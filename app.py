@@ -16,141 +16,104 @@ from streamlit_lottie import st_lottie # Animasyonlar için eklendi
 
 st.set_page_config(page_title="Ceren'in Defteri", layout="wide")
 
-# --- YENİ VE TASARIMCI STİL (CSS) ---
+# --- YENİ NESİL, OKUNAKLI VE ŞIK STİL (CSS) ---
+
+# Bu linkin çalıştığından emin olun veya kendi çalışan linkinizle değiştirin.
+arka_plan_resmi_url = "https://images.unsplash.com/photo-1495195129352-aeb3c95159b9?q=80&w=2670&auto=format&fit=crop"
 
 st.markdown(f"""
 <style>
-/* --- YENİ FONT'LARI GOOGLE'DAN ÇEKİYORUZ --- */
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500&family=Roboto+Condensed:wght@400;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Quicksand:wght@400;500;600&display=swap');
 
 /* --- GENEL SAYFA AYARLARI --- */
 .stApp {{
-    background: url(https://plus.unsplash.com/premium_photo-1663099777846-62e0c092ce0b?q=80&w=1349&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D) center/cover no-repeat fixed;
-    font: 1em/1.618 Inter, sans-serif; /* Ana metin fontu */
+    background-image: url("{arka_plan_resmi_url}");
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
 }}
 
-/* --- OKUNAKLILIK İÇİN YARI SAYDAM ARKA PLANLAR --- */
+/* --- "BUZLU CAM" EFEKTİ İLE ANA KUTULAR --- */
+/* Menü, filtreler ve form gibi tüm ana kutulara uygulanır */
 div[data-testid="stVerticalBlock"] > div[style*="border-radius"],
 div[data-testid="stForm"] {{
-    background-color: rgba(255, 255, 255, 0.75) !important;
-    backdrop-filter: blur(5px);
+    background-color: rgba(255, 255, 255, 0.35) !important; /* Düşük opaklıkta beyaz */
+    backdrop-filter: blur(15px) !important; /* Arka planı bulanıklaştırır (ANA EFEKT) */
     border-radius: 15px;
     padding: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.2); /* Hafif bir kenarlık */
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
 }}
 
-/* --- ANA BAŞLIKLAR --- */
+/* --- METİNLERİ ÖNE ÇIKARAN GÖLGE EFEKTİ --- */
+h1, h2, h3, h5, .stMarkdown p {{
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2); /* Tüm yazılara hafif gölge */
+}}
+
+/* --- BAŞLIKLAR --- */
 h1 {{
     font-family: 'Dancing Script', cursive !important;
-    color: #333 !important;
-    text-shadow: 1px 1px 3px rgba(255, 255, 255, 0.7);
+    color: #FFFFFF !important; /* Beyaz renk karmaşık arka planda daha iyi durur */
+    text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5); /* Daha belirgin gölge */
     text-align: center;
 }}
 
-/* --- YENİ TARİF KARTI TASARIMI --- */
+h2, h3, h5 {{
+    font-family: 'Quicksand', sans-serif !important;
+    color: #333333 !important;
+}}
+
+/* --- TARİF KARTLARI --- */
 .recipe-card {{
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
+    background-color: rgba(255, 255, 255, 0.6) !important; /* Daha opak bir buzlu cam */
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     padding: 0 !important;
     margin-bottom: 2rem;
+    overflow: hidden; /* Bu, resmin yuvarlak kenarlarını düzeltir */
 }}
 
-/* Kartın içindeki ana başlık (Tarif Adı) */
-.recipe-card h3 {{
-    font-family: 'Playfair Display', serif !important;
-    font-size: 28px !important; /* Boyutu biraz küçülttük */
-    font-weight: 400 !important;
-    color: #333 !important;
+.card-image {{
     width: 100%;
-    margin-bottom: 0;
-    text-shadow: 0.5px 0.5px 1px rgba(212, 212, 212, 0.5);
+    height: 250px;
+    object-fit: cover;
+    border-radius: 15px 15px 0 0; /* Sadece üst kenarları yuvarlak yapar */
 }}
 
-/* Kartın içindeki resim */
-.recipe-card .card-image {{
-    border-radius: 10px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    margin-bottom: 1rem;
+.card-body {{
+    padding: 1rem;
 }}
 
-/* Kategori etiketinin yeni stili */
-.recipe-card .category-badge {{
-    background-color: hsl(0deg 0% 96% / 85%);
+.category-badge {{
+    background-color: rgba(255, 255, 255, 0.7) !important;
+    color: #2F4F4F !important;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    padding: 4px 10px;
     border-radius: 5px;
-    color: #4a4a4a;
-    font-size: 11px;
-    height: 20px;
-    padding: 0px 8px;
-    font-family: 'Roboto Condensed', sans-serif;
-    margin: 5px 2px 7px 0;
-    text-shadow: 0.5px 0.5px 0.5px rgb(255 255 255 / 50%);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-top: 10px;
+    display: inline-block;
 }}
 
-/* --- "DETAYLARI GÖR" (EXPANDER) İÇİN YENİ TASARIM --- */
+/* --- "DETAYLARI GÖR" (EXPANDER) --- */
 div[data-testid="stExpander"] {{
-    background-color: transparent !important;
+    border-radius: 10px;
     border: none !important;
     box-shadow: none !important;
+    background-color: transparent !important;
     padding: 0 !important;
+    margin-top: 1rem;
 }}
 
-/* Expander başlığı */
 div[data-testid="stExpander"] summary {{
-    background: linear-gradient(25deg, #525a65, #3b424c);
-    color: rgba(255, 255, 255, .8);
-    text-shadow: 0 0 2px rgba(255, 255, 255, .2);
+    background-color: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: 8px;
     padding: 10px 15px !important;
-    box-shadow: inset 1px -0.5px 0.5px 0 rgba(255, 255, 255, .2), inset -1.5px 1px 2.5px 0 rgba(0, 0, 0, .2), 1.5px 0.5px 0.5px 0 rgba(0, 0, 0, .5);
 }}
-
-div[data-testid="stExpander"] summary p {{
-    font-family: 'Roboto Condensed', sans-serif;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-weight: 700 !important;
-}}
-
-/* Expander açıldığında görünen içerik alanı */
-div[data-testid="stExpander"] div[data-testid="stExpanderDetails"] {{
-    padding: 20px 15px 15px 15px;
-    background-color: hsl(0deg 0% 98% / 85%);
-    box-shadow: 0px 0.5vh 5px 0px rgba(0, 0, 0, 0.25);
-    border-radius: 0 0 8px 8px;
-    margin-top: -8px; /* Başlıkla birleşmesi için */
-}}
-
-/* Expander içindeki başlıklar (Malzemeler, Yapılışı) */
-div[data-testid="stExpanderDetails"] h5 {{
-    width: 100%;
-    margin: 0 0 10px 0;
-    padding: 0;
-    font-family: "Inter", sans-serif;
-    font-weight: 500;
-    letter-spacing: 0.4px;
-    font-size: 17px;
-    color: #333 !important;
-}}
-
-/* Expander içindeki metinler */
-div[data-testid="stExpanderDetails"] * {{
-    font-family: "Inter", sans-serif;
-    font-size: 14px;
-    color: #444 !important;
-}}
-
-/* Sil ve Düzenle Butonları */
-div[data-testid="stExpanderDetails"] .stButton button {{
-    border-radius: 5px;
-    border: 1px solid #ccc;
-    background-color: #f0f0f0;
-}}
-
 </style>
 """, unsafe_allow_html=True)
 
