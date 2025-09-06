@@ -38,48 +38,61 @@ def fetch_all_recipes():
         df = df[df['id'] != ''].copy()
     return df
 
+# Bu fonksiyonu mevcut get_instagram_thumbnail fonksiyonunuzla değiştirin.
+# Herhangi bir API anahtarına ihtiyaç duymaz.
 def get_instagram_thumbnail(url):
     """
-    RapidAPI üzerinden bir Instagram medya API'si kullanarak kapak fotoğrafı çeker.
+    Instagram linkinden kapak fotoğrafı URL'sini çeker.
+    Önce Instagram'ın oEmbed API'sini dener, olmazsa sayfa HTML'ini kazır.
     """
+    # Strateji 1: Instagram'ın oEmbed (gömme) API'sini kullanmak. Bu en güvenilir yöntemdir.
     try:
-        # Streamlit secrets'tan API anahtarını çekiyoruz
-        api_key = st.secrets["instagram"]["api_key"]
+        # oEmbed endpoint'ine istek atıyoruz.
+        api_url = f"https://graph.facebook.com/v19.0/instagram_oembed?url={url}&fields=thumbnail_url"
         
-        # API sitesinden alınan bilgilere göre güncellenen host ve url
-        api_host = "instagram120.p.rapidapi.com"
-        api_url = "https://instagram120.p.rapidapi.com/api/instagram/hls"
+        # Facebook Geliştirici hesabınızdan alacağınız bir Access Token'a ihtiyacınız var.
+        # Bu token'ı Streamlit Secrets'a ekleyin.
+        # Örnek: secrets.toml dosyanızda [facebook] access_token = "TOKENINIZ"
+        access_token = st.secrets["facebook"]["access_token"]
         
-        querystring = {"url": url}
-        
-        headers = {
-            "X-RapidAPI-Key": api_key,
-            "X-RapidAPI-Host": api_host
-        }
-
-        response = requests.get(api_url, headers=headers, params=querystring, timeout=10)
-        response.raise_for_status() 
-
+        response = requests.get(f"{api_url}&access_token={access_token}", timeout=10)
+        response.raise_for_status() # Hata varsa (4xx, 5xx) exception fırlat
         data = response.json()
         
-        # API'den dönen yanıtın yapısı farklı olabilir. 
-        # API dokümantasyonunuzu veya örnek yanıtı inceleyerek doğru anahtarı bulmanız gerekir.
-        # Genellikle "thumbnail_url" veya "display_url" gibi bir anahtar içerir.
-        # Varsayılan olarak "thumbnail_url" anahtarını deneyelim.
-        thumbnail_url = data.get('thumbnail_url')
-        
-        # Eğer thumbnail_url yoksa, video dosyasından ilk karesini almaya çalışabiliriz.
-        # Bu, API'nin yanıtına bağlıdır.
-        if not thumbnail_url:
-            media_info = data.get('media_info', [])
-            if media_info:
-                thumbnail_url = media_info[0].get('thumbnail_url')
-
-        return thumbnail_url if thumbnail_url else None
+        thumbnail = data.get("thumbnail_url")
+        if thumbnail:
+            st.success("Kapak fotoğrafı oEmbed API ile başarıyla bulundu!")
+            return thumbnail
             
-    except (requests.exceptions.RequestException, json.JSONDecodeError) as e:
-        st.error(f"API isteğinde hata oluştu. Lütfen URL'yi kontrol edin. Hata: {e}")
+    except requests.exceptions.RequestException as e:
+        st.warning(f"oEmbed API denemesi başarısız oldu. Hata: {e}. Alternatif yöntem deneniyor...")
+        pass # Hata olursa ikinci stratejiye geç
+
+    # Strateji 2: HTML'den 'og:image' meta etiketini kazımak (Fallback yöntemi)
+    try:
+        # Instagram'ın basit bir bot olmadığımızı düşünmesi için User-Agent ekliyoruz.
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # 'og:image' meta etiketi genellikle sayfanın önizleme resmini içerir.
+        meta_tag = soup.find('meta', property='og:image')
+        
+        if meta_tag and meta_tag.get('content'):
+            st.success("Kapak fotoğrafı HTML kazıma ile başarıyla bulundu!")
+            return meta_tag['content']
+            
+    except requests.exceptions.RequestException as e:
+        st.error(f"HTML kazıma sırasında hata oluştu: {e}")
         return None
+        
+    # Eğer iki yöntem de başarısız olursa
+    st.error("Her iki yöntem de kapak fotoğrafını bulamadı. Link gizli veya geçersiz olabilir.")
+    return None
 
 
 def display_recipe_cards(df):
