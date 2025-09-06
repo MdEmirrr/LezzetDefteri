@@ -91,6 +91,51 @@ def get_instagram_thumbnail(url):
     return None
 
 
+##  LINK YENILEME FONKSIYONU    
+def refresh_all_thumbnails():
+    st.info("Eski tariflerin kapak fotoğrafları yenileniyor... Bu işlem biraz zaman alabilir.")
+    
+    all_recipes_df = fetch_all_recipes()
+    worksheet_data = worksheet.get_all_values() # Tüm veriyi satır satır al
+    
+    # Başlıkların hangi sütunda olduğunu bulalım
+    header = worksheet_data[0]
+    try:
+        url_col_index = header.index('url') + 1
+        thumbnail_col_index = header.index('thumbnail_url') + 1
+    except ValueError:
+        st.error("'url' veya 'thumbnail_url' sütunları E-Tabloda bulunamadı!")
+        return
+
+    updated_count = 0
+    # Başlık satırını atlayarak başla (range(2, ...))
+    for i in range(2, len(worksheet_data) + 1):
+        row = worksheet_data[i-1]
+        original_post_url = row[url_col_index - 1]
+        current_thumbnail_url = row[thumbnail_col_index - 1]
+
+        # Eğer thumbnail linki bozuksa veya eskiyse yenilemeyi dene
+        # Basit bir kontrol: Eğer link cdninstagram içeriyorsa ve çalışmıyorsa...
+        # Veya daha kolayı, hepsini yenileyelim.
+        if original_post_url: # Sadece orjinal post linki olanları yenile
+            try:
+                st.write(f"{i-1}. satırdaki tarif yenileniyor: {original_post_url}")
+                new_thumbnail_url = get_instagram_thumbnail(original_post_url)
+                
+                if new_thumbnail_url and new_thumbnail_url != current_thumbnail_url:
+                    worksheet.update_cell(i, thumbnail_col_index, new_thumbnail_url)
+                    updated_count += 1
+                    st.write(f"✅ Başarılı! Yeni kapak fotoğrafı bulundu.")
+                elif not new_thumbnail_url:
+                    st.write(f"❌ Bu link için yeni kapak fotoğrafı bulunamadı.")
+
+            except Exception as e:
+                st.warning(f"{i-1}. satır işlenirken bir hata oluştu: {e}")
+
+    st.success(f"Yenileme tamamlandı! Toplam {updated_count} adet tarifin kapak fotoğrafı güncellendi.")
+    st.cache_data.clear() # Cache'i temizle ki yeni veriler görünsün
+    st.rerun()
+
 def display_recipe_cards(df):
     if df.empty:
         st.warning("Bu kriterlere uygun tarif bulunamadı.")
@@ -190,6 +235,10 @@ if st.session_state.recipe_to_edit_id is not None:
 else:
     if selected_page == "Tüm Tarifler":
         st.markdown("<h2>Tüm Tarifler</h2>", unsafe_allow_html=True)
+           # --- BUTONU TAM OLARAK BURAYA EKLİYORUZ ---
+        if st.button("Eski Kapak Fotoğraflarını Yenile"):
+            refresh_all_thumbnails()
+        # ------------------------------------------
         all_recipes_df = fetch_all_recipes()
         selected_category = st.selectbox("Kategoriye göre filtrele:", ["Tümü"] + TUM_KATEGORILER)
         if selected_category != "Tümü":
