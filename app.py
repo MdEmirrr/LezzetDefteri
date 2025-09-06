@@ -104,7 +104,7 @@ h2, h5 {{
 
 /* --- TARİF DETAY SAYFASI GÖRSEL BOYUTU DÜZELTMESİ (GÜNCELLENDİ) --- */
 /* Bu stil, st.image tarafından oluşturulan img etiketlerine uygulanacaktır */
-img.detail-image-class {{ /* st.image için özel bir sınıf verdik */
+detail-image {{ /* st.image için özel bir sınıf verdik */
     max-width: 400px; /* Maksimum genişlik ayarı */
     height: auto; /* Yüksekliği orantılı olarak ayarla */
     display: block; /* Margin auto için block element olmalı */
@@ -222,7 +222,7 @@ def display_recipe_cards_simple(df):
             </a>
             """, unsafe_allow_html=True)
 
-# --- GÜNCELLENMİŞ TARİF DETAY SAYFASI FONKSİYONU ---
+# --- GÜNCELLENMİŞ VE HATASI DÜZELTİLMİŞ TARİF DETAY SAYFASI FONKSİYONU ---
 def show_recipe_detail(recipe_id, df):
     recipe_df = df[df['id'].astype(str) == str(recipe_id)]
     
@@ -235,32 +235,22 @@ def show_recipe_detail(recipe_id, df):
 
     recipe = recipe_df.iloc[0]
     
-    st.link_button("⬅️ Tüm Tariflere Geri Dön", "/", use_container_width=True)
+    # Geri dön butonu (önceki düzeltilmiş haliyle)
+    if st.button("⬅️ Tüm Tariflere Geri Dön", use_container_width=True):
+        st.query_params.clear()
+        st.rerun()
+    
     st.markdown("---")
     
     col1, col2 = st.columns([2, 3]) 
     
     with col1:
-        # st.image'e sınıf ekleyerek CSS ile kontrol edeceğiz
-        # CSS'teki img.detail-image-class kuralı buradaki görseli etkileyecek
-        st.image(recipe['thumbnail_url'], use_container_width=False, output_format='auto', 
-                 clamp=True, caption=recipe['baslik'],  # Küçük bir başlık da ekleyelim
-                 # Streamlit'in widget_id'sini kullanarak özel sınıfımızı ekliyoruz
-                 # Bu kısım biraz ileri seviye bir Streamlit hilesidir :)
-                 # Normalde st.image'e class ekleyemeyiz, bu bir geçici çözüm.
-                 # Alternatif olarak, eğer bu çalışmazsa, st.markdown ile <img> etiketi oluşturabiliriz.
-                 # Ancak bu yol daha Streamlit'vari olduğu için bunu deniyoruz.
-                 # 'key' parametresi ile bir HTML sınıfı atayamadığımız için,
-                 # CSS selector ile daha genel bir yaklaşıma gidiyoruz.
-                 # VEYA en garantilisi:
-                 unsafe_allow_html=True) # st.markdown içine img etiketi olarak yerleştireceğiz.
-
-
-        # YUKARIDAKİ ST.IMAGE YERİNE BU KODU KULLANALIM, ÇÜNKÜ ST.IMAGE CSS CLASS KABUL ETMİYOR.
-        # Bu yöntem HTML kontrolümüzü artıracak.
+        # HATALI st.image ÇAĞRISI KALDIRILDI.
+        # Sadece st.markdown ile manuel <img> etiketi oluşturuyoruz.
+        # Bu yöntem, CSS ile boyut kontrolü yapmamızı sağlar.
         st.markdown(f"""
-        <img src="{recipe['thumbnail_url']}" class="detail-image-class" alt="{recipe['baslik']}">
-        """, unsafe_allow_html=True)
+            <img src="{recipe['thumbnail_url']}" class="detail-image" alt="{recipe['baslik']}">
+            """, unsafe_allow_html=True)
 
     with col2:
         st.markdown(f"<h1 class='detail-title'>{recipe['baslik']}</h1>", unsafe_allow_html=True)
