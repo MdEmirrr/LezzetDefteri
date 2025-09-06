@@ -15,7 +15,7 @@ import time
 st.set_page_config(page_title="Ceren'in Defteri", layout="wide")
 
 # Kullanmak istediğin arka plan resminin linki
-arka_plan_resmi_url = "https://images.unsplash.com/photo-1543360431-7e889d4d12c9?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+arka_plan_resmi_url = "https://images.unsplash.com/photo-1632837208522-19ef8867cd21?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
 
 st.markdown(f"""
 <style>
@@ -24,7 +24,7 @@ st.markdown(f"""
 
 /* --- GENEL SAYFA ARKA PLAN AYARLARI --- */
 .stApp {{
-    background-image: url("{https://images.unsplash.com/photo-1632837208522-19ef8867cd21?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D}");
+    background-image: url("{arka_plan_resmi_url}");
     background-size: cover;
     background-repeat: no-repeat;
     background-attachment: fixed;
