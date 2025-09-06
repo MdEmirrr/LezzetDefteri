@@ -9,6 +9,7 @@ import html
 from streamlit_option_menu import option_menu
 import json
 import re
+import time
 
 # --- STİL (CSS) ---
 st.set_page_config(page_title="Ceren'in Defteri", layout="wide")
@@ -93,12 +94,10 @@ def get_instagram_thumbnail(url):
 
 ##  LINK YENILEME FONKSIYONU    
 def refresh_all_thumbnails():
-    st.info("Eski tariflerin kapak fotoğrafları yenileniyor... Bu işlem biraz zaman alabilir.")
+    st.info("Eski tariflerin kapak fotoğrafları yenileniyor... Bu işlem yavaşlatılmıştır ve biraz zaman alabilir.")
     
-    all_recipes_df = fetch_all_recipes()
-    worksheet_data = worksheet.get_all_values() # Tüm veriyi satır satır al
-    
-    # Başlıkların hangi sütunda olduğunu bulalım
+    # ... (fonksiyonun üst kısmı aynı)
+    worksheet_data = worksheet.get_all_values()
     header = worksheet_data[0]
     try:
         url_col_index = header.index('url') + 1
@@ -108,16 +107,12 @@ def refresh_all_thumbnails():
         return
 
     updated_count = 0
-    # Başlık satırını atlayarak başla (range(2, ...))
     for i in range(2, len(worksheet_data) + 1):
         row = worksheet_data[i-1]
         original_post_url = row[url_col_index - 1]
         current_thumbnail_url = row[thumbnail_col_index - 1]
 
-        # Eğer thumbnail linki bozuksa veya eskiyse yenilemeyi dene
-        # Basit bir kontrol: Eğer link cdninstagram içeriyorsa ve çalışmıyorsa...
-        # Veya daha kolayı, hepsini yenileyelim.
-        if original_post_url: # Sadece orjinal post linki olanları yenile
+        if original_post_url:
             try:
                 st.write(f"{i-1}. satırdaki tarif yenileniyor: {original_post_url}")
                 new_thumbnail_url = get_instagram_thumbnail(original_post_url)
@@ -126,6 +121,11 @@ def refresh_all_thumbnails():
                     worksheet.update_cell(i, thumbnail_col_index, new_thumbnail_url)
                     updated_count += 1
                     st.write(f"✅ Başarılı! Yeni kapak fotoğrafı bulundu.")
+                    
+                    # --- YENİ EKLENEN KISIM BURASI ---
+                    time.sleep(1.1) # Google Sheets API limitine takılmamak için 1.1 saniye bekle.
+                    # ------------------------------------
+
                 elif not new_thumbnail_url:
                     st.write(f"❌ Bu link için yeni kapak fotoğrafı bulunamadı.")
 
@@ -133,7 +133,7 @@ def refresh_all_thumbnails():
                 st.warning(f"{i-1}. satır işlenirken bir hata oluştu: {e}")
 
     st.success(f"Yenileme tamamlandı! Toplam {updated_count} adet tarifin kapak fotoğrafı güncellendi.")
-    st.cache_data.clear() # Cache'i temizle ki yeni veriler görünsün
+    st.cache_data.clear()
     st.rerun()
 
 def display_recipe_cards(df):
