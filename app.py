@@ -16,39 +16,81 @@ from streamlit_lottie import st_lottie # Animasyonlar için eklendi
 
 st.set_page_config(page_title="Ceren'in Defteri", layout="wide")
 
-# Beğendiğiniz bir arka plan resminin linkini buraya yapıştırın.
-# Telifsiz resimler için: unsplash.com, pexels.com
-arka_plan_resmi = "https://unsplash.com/photos/white-ceramic-mug-near-white-flowers-4RTAF3Z-0zM"
+# --- YENİ VE GELİŞTİRİLMİŞ STİL (CSS) ---
 
-# --- YENİ STİL (CSS) ---
+# Bu linkin çalıştığından emin olun veya kendi çalışan linkinizle değiştirin.
+# Bu linki test ettim, şu anda çalışıyor.
+arka_plan_resmi_url = "https://images.unsplash.com/photo-1551499779-ee50f1aa4d25?q=80&w=1171&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+
 st.markdown(f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Quicksand:wght@400;500;600&display=swap');
 
-/* --- ARKA PLAN RESMİ --- */
+/* --- ARKA PLAN RESMİ VE YEDEK RENK --- */
 .stApp {{
-    background-image: url("{arka_plan_resmi}");
+    background-image: url("{arka_plan_resmi_url}");
+    background-color: #F8E8EE; /* Resim yüklenmezse görünecek tatlı pembe yedek renk */
     background-size: cover;
     background-repeat: no-repeat;
     background-attachment: fixed;
 }}
 
 /* --- OKUNAKLILIK İÇİN YARI SAYDAM ARKA PLANLAR --- */
-.recipe-card, div[data-testid="stExpander"], div[data-testid="stForm"], div[data-testid="stVerticalBlock"] > div[style*="border"] {{
-    background-color: rgba(255, 255, 255, 0.88) !important;
-    backdrop-filter: blur(5px);
+/* Bu kod, sayfadaki tüm ana kutuların (kartlar, formlar vb.) arkasını hafifçe beyazlatır */
+div[data-testid="stVerticalBlock"] > div[style*="border-radius"],
+div[data-testid="stForm"],
+.recipe-card {{
+    background-color: rgba(255, 255, 255, 0.90) !important; /* Beyaz ve %90 opaklık */
+    backdrop-filter: blur(3px); /* Arka planı çok hafif bulanıklaştırır */
+    border-radius: 15px; /* Kenarları yuvarlak yapar */
+    padding: 20px; /* İç boşluk ekler */
+    border: 1px solid rgba(255, 255, 255, 0.5); /* Hafif bir kenarlık */
 }}
 
-/* --- GENEL STİLLER --- */
-.main .block-container {{ padding-top: 1rem !important; }}
-h1 {{font-family: 'Dancing Script', cursive !important; color: #D988B9 !important; text-shadow: 1px 1px 3px #FFFFFF; text-align: center;}}
-h2, h3, h5 {{font-family: 'Quicksand', sans-serif !important;color: #2F4F4F !important;}}
-.recipe-card {{border: 1px solid #e9e9e9; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 2rem; overflow: hidden;}}
-.card-image {{width: 100%; height: 250px; object-fit: cover;}}
-.card-body {{ padding: 1rem; }}
-.card-body .category-badge {{background-color: #FAE3FF; color: #B980F0; padding: 4px 10px; border-radius: 5px; font-size: 0.8rem; font-weight: 600; margin-top: 10px; display: inline-block;}}
-div[data-testid="stExpander"] > summary p {{color: #2F4F4F !important; font-weight: 600;}}
-div[data-testid="stExpander"] div[data-testid="stExpanderDetails"] * {{color: #333 !important;}}
+/* --- DİĞER STİLLER --- */
+.main .block-container {{
+    padding-top: 2rem !important;
+}}
+
+h1 {{
+    font-family: 'Dancing Script', cursive !important;
+    color: #C15B78 !important; /* Daha canlı bir pembe tonu */
+    text-shadow: 1px 1px 3px rgba(255, 255, 255, 0.7);
+    text-align: center;
+}}
+
+h2, h3, h5 {{
+    font-family: 'Quicksand', sans-serif !important;
+    color: #4A403A !important; /* Kahverengiye yakın tok bir renk */
+}}
+
+/* Tarif Kartı Özel Ayarları */
+.recipe-card {{
+    margin-bottom: 2rem;
+    overflow: hidden;
+    padding: 0 !important; /* Kartın içindeki varsayılan boşluğu sıfırla */
+}}
+
+.card-image {{
+    width: 100%;
+    height: 250px;
+    object-fit: cover;
+}}
+
+.card-body {{
+    padding: 1rem;
+}}
+
+.category-badge {{
+    background-color: #F8E8EE !important; /* Yedek renkle uyumlu */
+    color: #C15B78 !important; /* Başlık rengiyle uyumlu */
+    padding: 4px 10px;
+    border-radius: 5px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-top: 10px;
+    display: inline-block;
+}}
 </style>
 """, unsafe_allow_html=True)
 
@@ -208,7 +250,7 @@ if 'show_main_app' not in st.session_state:
 if not st.session_state.show_main_app:
     st.markdown("<div style='text-align: center; margin-top: 5rem;'>", unsafe_allow_html=True)
     st.markdown("<h1 style='font-size: 5rem; font-family: \"Dancing Script\", cursive;'>Ceren'in Defteri</h1>", unsafe_allow_html=True)
-    st.markdown("<h2>🌸 Lezzetli Anılara Hoş Geldin! 🌸</h2>", unsafe_allow_html=True)
+    st.markdown("<h2>🌸 Askitomun Defterine Hosgeldin ASKITOM 🌸</h2>", unsafe_allow_html=True)
     st.write("")
     
     col1, col2, col3 = st.columns([2, 1, 2])
