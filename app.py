@@ -112,7 +112,8 @@ h2, h5 {{
     padding-bottom: 8px;
     margin-top: 2rem;
 }}
-.detail-section pre {{
+/* st.code yerine st.text kullandığımız için bu stil daha iyi çalışacak */
+.detail-section div[data-testid="stText"] {{
     white-space: pre-wrap; /* Malzemelerin ve yapılışın düzgün görünmesini sağlar */
     font-family: 'Quicksand', sans-serif;
     font-size: 1rem;
@@ -191,6 +192,7 @@ def display_recipe_cards_simple(df):
     for i, recipe in enumerate(df.to_dict('records')):
         col = cols[i % 4]
         with col:
+            # target="_self" linkin aynı sekmede açılmasını sağlar
             st.markdown(f"""
             <a href="/?id={recipe['id']}" target="_self" class="recipe-card-link">
                 <div class="recipe-card">
@@ -202,40 +204,57 @@ def display_recipe_cards_simple(df):
             </a>
             """, unsafe_allow_html=True)
 
-# --- YENİ: TARİF DETAY SAYFASI GÖRÜNÜMÜ ---
+# --- GÜNCELLENMİŞ TARİF DETAY SAYFASI FONKSİYONU ---
 def show_recipe_detail(recipe_id, df):
-    recipe = df[df['id'].astype(str) == str(recipe_id)].iloc[0]
+    # ID'ye göre tarifi bulalım
+    recipe_df = df[df['id'].astype(str) == str(recipe_id)]
     
-    with st.container(className="detail-container"):
+    # EĞER TARİF BULUNAMAZSA HATA VERMEK YERİNE UYARI GÖSTERELİM
+    if recipe_df.empty:
+        st.error("Aradığınız tarif bulunamadı. Silinmiş veya linki hatalı olabilir.")
+        st.warning("Tarifi çok yakın zamanda eklediyseniz, verilerin güncellenmesi biraz zaman alabilir.")
+        # Ana sayfaya dönmek için bir buton ekleyelim
+        if st.button("⬅️ Ana Sayfaya Dön"):
+            st.query_params.clear() # URL'deki id'yi temizle
+            st.rerun()
+        return # Fonksiyondan çık, böylece aşağıdaki kod çalışmaz ve hata vermez
+
+    # Tarif bulunduysa, ilk satırı al (artık güvenli)
+    recipe = recipe_df.iloc[0]
+    
+    with st.container(): # class vermeden, sayfanın tamamını kullan
+        # Geri dön butonu için st.link_button daha modern bir çözüm
         st.link_button("⬅️ Tüm Tariflere Geri Dön", "/", use_container_width=True)
         st.markdown("---")
         
-        col1, col2 = st.columns([2, 3])
-        with col1:
-            st.image(recipe['thumbnail_url'], css_class="detail-image")
-        with col2:
-            st.markdown(f"<h1 class='detail-title'>{recipe['baslik']}</h1>", unsafe_allow_html=True)
-            st.markdown(f"""
-            <div class="detail-metadata">
-                <span>
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.2,10.2l-1-5A1,1,0,0,0,18.22,4H5.78a1,1,0,0,0-1,.81l-1,5a1,1,0,0,0,0,.38V18a2,2,0,0,0,2,2H18a2,2,0,0,0,2-2V10.58A1,1,0,0,0,20.2,10.2ZM5.2,6H18.8l.6,3H4.6ZM18,18H6V12H18Z"/></svg>
-                    Zorluk: <b>{recipe.get('yemek_zorlugu', 'N/A')}</b>
-                </span>
-                <span>
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12,2A10,10,0,1,0,22,12,10,10,0,0,0,12,2Zm0,18a8,8,0,1,1,8-8A8,8,0,0,1,12,20Zm4-9.5H12.5V7a1,1,0,0,0-2,0v5.5a1,1,0,0,0,1,1H16a1,1,0,0,0,0-2Z"/></svg>
-                    Süre: <b>{recipe.get('hazirlanma_suresi', 0)} dk</b>
-                </span>
-            </div>
-            """, unsafe_allow_html=True)
-            st.markdown(f"<a href='{recipe['url']}' target='_blank'>Instagram'da Gör ↗️</a>", unsafe_allow_html=True)
-        
-        st.markdown("<div class='detail-section'><h5>Malzemeler</h5></div>", unsafe_allow_html=True)
-        st.code(recipe.get('malzemeler', 'Eklenmemiş'), language=None)
-        
-        st.markdown("<div class='detail-section'><h5>Yapılışı</h5></div>", unsafe_allow_html=True)
-        st.markdown(recipe.get('yapilisi', 'Eklenmemiş'))
+        # Detayları göstermek için bir konteyner
+        with st.container(border=True): # Kenarlık ekleyerek şık bir kutu yapalım
+            col1, col2 = st.columns([2, 3])
+            with col1:
+                st.image(recipe['thumbnail_url'], use_column_width=True)
+            with col2:
+                st.markdown(f"<h1 class='detail-title' style='margin-top:0;'>{recipe['baslik']}</h1>", unsafe_allow_html=True)
+                st.markdown(f"""
+                <div class="detail-metadata">
+                    <span>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.2,10.2l-1-5A1,1,0,0,0,18.22,4H5.78a1,1,0,0,0-1,.81l-1,5a1,1,0,0,0,0,.38V18a2,2,0,0,0,2,2H18a2,2,0,0,0,2-2V10.58A1,1,0,0,0,20.2,10.2ZM5.2,6H18.8l.6,3H4.6ZM18,18H6V12H18Z"/></svg>
+                        Zorluk: <b>{recipe.get('yemek_zorlugu', 'N/A')}</b>
+                    </span>
+                    <span>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12,2A10,10,0,1,0,22,12,10,10,0,0,0,12,2Zm0,18a8,8,0,1,1,8-8A8,8,0,0,1,12,20Zm4-9.5H12.5V7a1,1,0,0,0-2,0v5.5a1,1,0,0,0,1,1H16a1,1,0,0,0,0-2Z"/></svg>
+                        Süre: <b>{recipe.get('hazirlanma_suresi', 0)} dk</b>
+                    </span>
+                </div>
+                """, unsafe_allow_html=True)
+                st.markdown(f"<a href='{recipe['url']}' target='_blank'>Instagram'da Gör ↗️</a>", unsafe_allow_html=True)
+            
+            st.markdown("<div class='detail-section'><h5>Malzemeler</h5></div>", unsafe_allow_html=True)
+            st.text(recipe.get('malzemeler', 'Eklenmemiş')) # st.code yerine st.text kullanalım
+            
+            st.markdown("<div class='detail-section'><h5>Yapılışı</h5></div>", unsafe_allow_html=True)
+            st.markdown(recipe.get('yapilisi', 'Eklenmemiş'))
 
-# --- YENİ: ANA SAYFA GÖRÜNÜMÜ ---
+# --- ANA SAYFA GÖRÜNÜMÜ ---
 def show_main_page():
     all_recipes_df = fetch_all_recipes()
     
@@ -253,6 +272,7 @@ def show_main_page():
         display_recipe_cards_simple(sorted_recipes)
 
     elif selected_page == "Ne Pişirsem?":
+        # ... (Bu kısım aynı)
         st.markdown("<h2>Ne Pişirsem?</h2>", unsafe_allow_html=True)
         all_ingredients_list = []
         for ingredients in all_recipes_df['malzemeler'].dropna():
@@ -268,11 +288,11 @@ def show_main_page():
             display_recipe_cards_simple(sorted_recipes)
         else:
             st.info("Sonuçları görmek için yukarıdan malzeme seçin.")
-
+            
     elif selected_page == "Yeni Tarif Ekle":
+        # ... (Bu kısım aynı)
         st.markdown("<h2>Yeni Bir Tarif Ekle</h2>", unsafe_allow_html=True)
         with st.form("new_recipe_page_form", clear_on_submit=True):
-            # Form içeriği aynı...
             col1, col2 = st.columns(2)
             with col1:
                 insta_url = st.text_input("Instagram Reel Linki")
@@ -297,9 +317,9 @@ def show_main_page():
                 else: st.warning("Lütfen en azından Link ve Başlık alanlarını doldurun.")
 
 # --- ANA UYGULAMA YÖNLENDİRİCİSİ (ROUTER) ---
-params = st.query_params.to_dict()
+params = st.query_params
 if "id" in params:
-    recipe_id = params["id"][0]
+    recipe_id = params["id"]
     all_recipes_df = fetch_all_recipes()
     show_recipe_detail(recipe_id, all_recipes_df)
 else:
