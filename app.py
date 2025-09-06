@@ -20,7 +20,7 @@ st.set_page_config(page_title="Ceren'in Defteri", layout="wide")
 
 # Bu linkin çalıştığından emin olun veya kendi çalışan linkinizle değiştirin.
 # Bu linki test ettim, şu anda çalışıyor.
-arka_plan_resmi_url = "https://images.unsplash.com/photo-1551499779-ee50f1aa4d25?q=80&w=1171&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+arka_plan_resmi_url = "https://plus.unsplash.com/premium_photo-1663099777846-62e0c092ce0b?q=80&w=1349&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
 
 st.markdown(f"""
 <style>
