@@ -26,7 +26,7 @@ st.markdown(f"""
 
 /* --- GENEL SAYFA AYARLARI --- */
 .stApp {{
-    background: url(https://assets.codepen.io/4927073/AdobeStock_78589840.jpeg) center/cover no-repeat fixed;
+    background: url(https://plus.unsplash.com/premium_photo-1663099777846-62e0c092ce0b?q=80&w=1349&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D) center/cover no-repeat fixed;
     font: 1em/1.618 Inter, sans-serif; /* Ana metin fontu */
 }}
 
