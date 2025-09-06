@@ -38,55 +38,55 @@ def fetch_all_recipes():
         df = df[df['id'] != ''].copy()
     return df
 
-# Bu fonksiyonu mevcut get_instagram_thumbnail fonksiyonunuzla tamamen değiştirin.
-# Artık Facebook token'ına veya App Review'e ihtiyacı YOKTUR.
 def get_instagram_thumbnail(url):
     """
     Instagram linkinden kapak fotoğrafı URL'sini çeker.
-    Önce gizli bir JSON endpoint'ini dener, olmazsa HTML'i kazır.
+    Instagram'ın bot engellerini aşmak için daha gelişmiş yöntemler dener.
     """
-    # URL'nin sonundaki eğik çizgiyi ve sorgu parametrelerini temizleyelim.
-    clean_url = url.split('?')[0]
-    if clean_url.endswith('/'):
-        clean_url = clean_url[:-1]
-
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'accept-language': 'en-US,en;q=0.9'
-    }
-
-    # Strateji 1: Gizli JSON Endpoint'i Kullanmak (En İyi Yöntem)
     try:
-        json_url = f"{clean_url}/?__a=1&__d=dis"
-        response = requests.get(json_url, headers=headers, timeout=10)
-        response.raise_for_status()
-        data = response.json()
-        
-        # JSON yapısı içinde görselin URL'sini arıyoruz.
-        thumbnail = data.get("graphql", {}).get("shortcode_media", {}).get("display_url")
-        if thumbnail:
-            return thumbnail
-            
-        thumbnail = data.get("items", [{}])[0].get("image_versions2", {}).get("candidates", [{}])[0].get("url")
-        if thumbnail:
-            return thumbnail
+        # Instagram'ın mobil sitesi bazen daha az korumalı olabilir.
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 13_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1.1 Mobile/15E148 Safari/604.1',
+            'accept-language': 'en-US,en;q=0.9'
+        }
 
-    except (requests.exceptions.RequestException, json.JSONDecodeError, IndexError, KeyError):
-        pass # Bu yöntem başarısız olursa ikinci stratejiye geç.
-
-    # Strateji 2: HTML'den 'og:image' meta etiketini kazımak (Facebook'un da önerdiği yöntem)
-    try:
-        response = requests.get(clean_url, headers=headers, timeout=10)
+        session = requests.Session()
+        response = session.get(url, headers=headers, timeout=15)
         response.raise_for_status()
-        soup = BeautifulSoup(response.text, 'html.parser')
+        html_text = response.text
+
+        # Strateji 1: Sayfa içindeki gömülü JSON verisini bulup çıkarmak. Bu en güvenilir yöntemdir.
+        # Instagram genellikle sayfa verilerini bir <script> etiketi içinde JSON olarak saklar.
+        script_tag = re.search(r'<script type="application/ld\+json">(.+?)</script>', html_text)
+        if script_tag:
+            json_data = json.loads(script_tag.group(1))
+            # JSON verisi içinde video veya resim URL'sini arayalım.
+            thumbnail_url = json_data.get('thumbnailUrl') or json_data.get('image')
+            if thumbnail_url:
+                return thumbnail_url
+
+        # Strateji 2: Eğer ilk strateji çalışmazsa, standart 'og:image' meta etiketini arayalım.
+        soup = BeautifulSoup(html_text, 'html.parser')
         meta_tag = soup.find('meta', property='og:image')
         if meta_tag and meta_tag.get('content'):
             return meta_tag['content']
-    except requests.exceptions.RequestException:
-        st.error(f"Instagram'dan kapak fotoğrafı alınamadı. Linkin herkese açık olduğundan emin olun. URL: {clean_url}")
+
+        # Strateji 3: Bazen veriler farklı bir script içinde olabilir, onu da arayalım.
+        # Bu biraz daha karmaşıktır ve son çaredir.
+        shared_data_script = re.search(r'window\._sharedData\s*=\s*(.*?);</script>', html_text)
+        if shared_data_script:
+            shared_data = json.loads(shared_data_script.group(1))
+            media = shared_data['entry_data']['PostPage'][0]['graphql']['shortcode_media']
+            thumbnail_url = media.get('display_url')
+            if thumbnail_url:
+                return thumbnail_url
+
+    except Exception as e:
+        st.error(f"Veri çekme sırasında bir hata oluştu. Hata: {e}")
         return None
-        
-    st.error(f"Her iki yöntem de kapak fotoğrafını bulamadı. URL: {clean_url}")
+
+    # Eğer hiçbir yöntem çalışmazsa
+    st.warning(f"Bu linkten kapak fotoğrafı otomatik olarak alınamadı. Link doğruysa, Instagram'ın güvenlik önlemleri engellemiş olabilir.")
     return None
 
 
