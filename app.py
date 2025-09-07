@@ -310,7 +310,7 @@ def show_main_page():
     # Header'ı sayfanın en başında, menüden önce oluşturuyoruz
     st.markdown("""
         <header>
-            <h1>🌸 Ceren'in Defteri 🌸</h1>
+            <h1> Ceren'in Defteri </h1>
         </header>
     """, unsafe_allow_html=True)
     
