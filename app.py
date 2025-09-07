@@ -193,28 +193,26 @@ def display_recipe_cards_final(df):
 
 
 # --- TARİF DETAY SAYFASI ---
+# --- GÜNCELLENMİŞ DETAY SAYFASI (Tıklanabilir Resim) ---
 def show_recipe_detail(recipe_id, df):
     recipe_df = df[df['id'].astype(str) == str(recipe_id)]
-    if recipe_df.empty:
-        st.error("Aradığınız tarif bulunamadı."); st.stop()
+    if recipe_df.empty: st.error("Aradığınız tarif bulunamadı."); st.stop()
     recipe = recipe_df.iloc[0]
-
+    
     # Butonlar için sütunlar
-    col_b1, col_b2, col_b3, col_b4 = st.columns([2, 2, 2, 6])
+    col_b1, col_b2, col_b3, col_b4 = st.columns([2, 3, 2, 5])
     with col_b1:
-        if st.button("⬅️ Geri", key="back_button_detail"):
+        if st.button("⬅️ Geri"):
             st.query_params.clear(); st.rerun()
     with col_b2:
         is_favorite = recipe.get('favori') == 'EVET'
         fav_text = "⭐ Favoriden Çıkar" if is_favorite else "⭐ Favorilere Ekle"
-        if st.button(fav_text, key="favorite_button_detail"):
-            cell = worksheet.find(str(recipe['id']))
-            favori_col_index = worksheet.row_values(1).index('favori') + 1
-            new_status = "HAYIR" if is_favorite else "EVET"
-            worksheet.update_cell(cell.row, favori_col_index, new_status)
+        if st.button(fav_text):
+            cell = worksheet.find(str(recipe['id'])); favori_col_index = [h.strip().lower().replace(' ', '_') for h in worksheet.row_values(1)].index('favori') + 1
+            new_status = "HAYIR" if is_favorite else "EVET"; worksheet.update_cell(cell.row, favori_col_index, new_status)
             st.cache_data.clear(); st.rerun()
     with col_b3:
-        if st.button("✏️ Düzenle", key="edit_button_detail"):
+        if st.button("✏️ Düzenle"):
             st.session_state.recipe_to_edit_id = recipe['id']
             st.query_params.clear(); st.rerun()
 
@@ -223,14 +221,23 @@ def show_recipe_detail(recipe_id, df):
     
     col1, col2, col3 = st.columns([2, 2, 2], gap="large")
     with col1:
-        st.markdown(f"""<div class="detail-card"><img src="{recipe['thumbnail_url']}" alt="{recipe['baslik']}"></div>""", unsafe_allow_html=True)
+        # DEĞİŞİKLİK BURADA: Resim artık Instagram linkine giden bir bağlantı
+        st.markdown(f"""
+        <a href="{recipe['url']}" target="_blank" title="Instagram'da gör">
+            <div class="detail-card">
+                <img src="{recipe['thumbnail_url']}" alt="{recipe['baslik']}">
+            </div>
+        </a>
+        """, unsafe_allow_html=True)
+
     with col2:
         st.markdown(f"""<div class="detail-card"><h5>Malzemeler</h5><div class="detail-card-text">{recipe.get('malzemeler', 'Eklenmemiş')}</div></div>""", unsafe_allow_html=True)
+
     with col3:
         st.markdown(f"""<div class="detail-card"><h5>Yapılışı</h5><div class="detail-card-text">{recipe.get('yapilisi', 'Eklenmemiş')}</div></div>""", unsafe_allow_html=True)
     
-    # Silme butonu için tehlikeli bölge
     st.markdown("---")
+    # ... (Benzer tarif önerileri kısmı aynı) ...
     with st.expander("🔴 Tarifi Kalıcı Olarak Sil"):
         st.warning("Bu işlem geri alınamaz. Tarifi silmek istediğinizden emin misiniz?")
         if st.button("Evet, Bu Tarifi Sil", type="primary", key="delete_confirm_button"):
@@ -243,67 +250,60 @@ def show_recipe_detail(recipe_id, df):
             st.rerun()
 
 # --- DÜZENLEME FORMU SAYFASI ---
+# --- DÜZENLEME FORMU SAYFASI (KeyError Düzeltmesi) ---
 def show_edit_form(recipe_id, df):
     recipe_df = df[df['id'].astype(str) == str(recipe_id)]
-    if recipe_df.empty:
-        st.error("Düzenlenecek tarif bulunamadı."); st.stop()
+    if recipe_df.empty: st.error("Düzenlenecek tarif bulunamadı."); st.stop()
     recipe = recipe_df.iloc[0].to_dict()
 
     st.markdown(f"<h2>✏️ Tarifi Düzenle: *{recipe['baslik']}*</h2>", unsafe_allow_html=True)
     with st.form("edit_recipe_form"):
-        # Form elemanları...
+        # DEĞİŞİKLİK BURADA: 'instagram_reel_link' yerine doğru sütun adı olan 'url' kullanıldı.
+        edit_insta_url = st.text_input("Instagram Reel Linki", value=recipe['url'])
+        
         edit_baslik = st.text_input("Tarif Başlığı", value=recipe['baslik'])
-        edit_insta_url = st.text_input("Instagram Reel Linki", value=recipe['instagram_reel_link'])
         
         kategori_options = sorted(df['kategori'].unique())
         kategori_index = kategori_options.index(recipe['kategori']) if recipe['kategori'] in kategori_options else 0
         edit_kategori = st.selectbox("Kategori", options=kategori_options, index=kategori_index)
         
-        edit_yemek_zorlugu = st.selectbox("Yemek Zorluğu", options=["Basit", "Orta", "Zor"], index=["Basit", "Orta", "Zor"].index(recipe['yemek_zorlugu']))
-        edit_hazirlanma_suresi = st.number_input("Hazırlanma Süresi (dakika)", min_value=1, step=5, value=recipe['hazirlanma_suresi'])
+        # Zorluk ve süre için de .get() kullanalım ki boş ise hata vermesin
+        zorluk_options = ["Basit", "Orta", "Zor"]
+        zorluk_index = zorluk_options.index(recipe.get('yemek_zorlugu')) if recipe.get('yemek_zorlugu') in zorluk_options else 0
+        edit_yemek_zorlugu = st.selectbox("Yemek Zorluğu", options=zorluk_options, index=zorluk_index)
+        edit_hazirlanma_suresi = st.number_input("Hazırlanma Süresi (dakika)", min_value=1, step=5, value=int(recipe.get('hazirlanma_suresi', 1)))
         
         edit_malzemeler = st.text_area("Malzemeler (Her satıra bir tane)", value=recipe.get('malzemeler', ''), height=200)
         edit_yapilisi = st.text_area("Yapılışı (Açıklama)", value=recipe.get('yapilisi', ''), height=200)
 
-        submitted_edit = st.form_submit_button("💾 Değişiklikleri Kaydet")
+        col_s1, col_s2 = st.columns(2)
+        with col_s1:
+            submitted_edit = st.form_submit_button("💾 Değişiklikleri Kaydet", use_container_width=True)
+        with col_s2:
+            if st.form_submit_button("❌ İptal", use_container_width=True):
+                st.session_state.recipe_to_edit_id = None
+                st.rerun()
+
         if submitted_edit:
             try:
                 cell = worksheet.find(str(recipe['id']))
-                header = worksheet.row_values(1)
+                header = [h.strip().lower().replace(' ', '_') for h in worksheet.row_values(1)]
                 
-                # Sadece değişen alanları güncelle
-                if edit_baslik != recipe['baslik']:
-                    worksheet.update_cell(cell.row, header.index('baslik') + 1, edit_baslik)
-                if edit_insta_url != recipe['instagram_reel_link']:
-                    worksheet.update_cell(cell.row, header.index('instagram_reel_link') + 1, edit_insta_url)
-                    # Thumbnail URL'sini de güncelle
-                    new_thumbnail = get_instagram_thumbnail(edit_insta_url)
-                    if new_thumbnail:
-                        worksheet.update_cell(cell.row, header.index('thumbnail_url') + 1, new_thumbnail)
-                    else:
-                        st.warning("Yeni Instagram linkinden kapak fotoğrafı alınamadı, eski fotoğraf kaldı.")
-                if edit_kategori != recipe['kategori']:
-                    worksheet.update_cell(cell.row, header.index('kategori') + 1, edit_kategori)
-                if edit_yemek_zorlugu != recipe['yemek_zorlugu']:
-                    worksheet.update_cell(cell.row, header.index('yemek_zorlugu') + 1, edit_yemek_zorlugu)
-                if edit_hazirlanma_suresi != recipe['hazirlanma_suresi']:
-                    worksheet.update_cell(cell.row, header.index('hazirlanma_suresi') + 1, edit_hazirlanma_suresi)
-                if edit_malzemeler != recipe.get('malzemeler', ''):
-                    worksheet.update_cell(cell.row, header.index('malzemeler') + 1, edit_malzemeler)
-                if edit_yapilisi != recipe.get('yapilisi', ''):
-                    worksheet.update_cell(cell.row, header.index('yapilisi') + 1, edit_yapilisi)
+                worksheet.update_cell(cell.row, header.index('baslik') + 1, edit_baslik)
+                worksheet.update_cell(cell.row, header.index('url') + 1, edit_insta_url)
+                worksheet.update_cell(cell.row, header.index('kategori') + 1, edit_kategori)
+                worksheet.update_cell(cell.row, header.index('yemek_zorlugu') + 1, edit_yemek_zorlugu)
+                worksheet.update_cell(cell.row, header.index('hazirlanma_suresi') + 1, edit_hazirlanma_suresi)
+                worksheet.update_cell(cell.row, header.index('malzemeler') + 1, edit_malzemeler)
+                worksheet.update_cell(cell.row, header.index('yapilisi') + 1, edit_yapilisi)
                 
                 st.success("Tarif başarıyla güncellendi!")
                 st.cache_data.clear()
-                st.session_state.recipe_to_edit_id = None # Edit modundan çık
+                st.session_state.recipe_to_edit_id = None
                 time.sleep(1)
                 st.rerun()
             except Exception as e:
                 st.error(f"Güncelleme sırasında bir hata oluştu: {e}")
-
-    if st.button("İptal", key="cancel_edit_button"):
-        st.session_state.recipe_to_edit_id = None
-        st.rerun()
 
 # --- ANA SAYFA GÖRÜNÜMÜ ---
 def show_main_page():
