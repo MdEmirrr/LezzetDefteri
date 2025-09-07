@@ -26,13 +26,16 @@ st.markdown(f"""
     --background-cream: #FDF5E6;  /* Krem Arka Plan */
     --card-bg-color: #FFFFFF;     /* Kartlar - Beyaz */
     --text-dark: #36454F;         /* Koyu Antrasit - Ana Metin */
+    --text-light: #6A7B8E;        /* Gri Mavi - Alt Metinler */
     --border-light: #E0E0E0;      /* İnce Sınırlar */
+    --link-color: #2196F3;        /* Mavi Link Rengi */
 }}
 
 /* --- GENEL SAYFA AYARLARI --- */
 .stApp {{
     background-color: var(--background-cream);
     font-family: 'Quicksand', sans-serif;
+    cursor: url('https://cur.cursors-4u.net/symbols/syb-3/syb277.cur'), auto; /* Özel fare imleci */
 }}
 
 /* Streamlit'in varsayılan üst boşluğunu kaldırarak header'ı en üste yapıştırıyoruz */
@@ -61,9 +64,9 @@ div[data-testid="stHeading"] {{ display: none; }}
 
 /* --- ÜST NAVİGASYON MENÜSÜ HİZALAMA VE KAYMA DÜZELTMESİ --- */
 nav[role="navigation"] {{
-    width: 100%; /* Konteynerin tam genişliği kullanmasını sağla */
+    width: 100%;
     display: flex;
-    justify-content: center; /* İçindeki elemanları ortala */
+    justify-content: center;
 }}
 nav[role="navigation"] > ul {{
     background-color: var(--card-bg-color);
@@ -73,27 +76,160 @@ nav[role="navigation"] > ul {{
     border: 1px solid var(--border-light);
 }}
 nav[role="navigation"] li a {{
-    white-space: nowrap; /* "Ne Pişirsem?" gibi metinlerin alta kaymasını engelle */
+    white-space: nowrap;
+    padding: 0.5rem 1rem; /* Daha geniş tıklama alanı ve boşluk */
+    display: flex; /* İçindeki ikon ve metni hizalamak için */
+    align-items: center;
+    gap: 0.5rem; /* İkon ile metin arasına boşluk */
+    color: var(--text-dark); /* Varsayılan metin rengi */
+    text-decoration: none; /* Alt çizgiyi kaldır */
 }}
-/* Seçili menü elemanı için stil */
+nav[role="navigation"] li a:hover {{
+    background-color: #F0F0F0; /* Hafif bir hover efekti */
+    border-radius: 8px;
+}}
 .nav-link-selected {{
-    background-color: var(--primary-color);
-    color: white !important;
+    background-color: var(--primary-color) !important; /* Seçili butonun arka planı */
+    color: white !important; /* Seçili butonun metin rengi */
     border-radius: 8px;
 }}
 .nav-link-selected p {{
+    color: white !important; /* Seçili butonun p etiketi içindeki metin rengi */
+}}
+/* option_menu'nün ikonlarını da hedefleyelim */
+.st-emotion-cache-1nm7f8b .st-emotion-cache-10qik0g {{ /* Seçili ikon */
     color: white !important;
 }}
+.st-emotion-cache-pkpr8m .st-emotion-cache-10qik0g {{ /* Normal ikon */
+    color: var(--text-dark) !important;
+}}
 
-/* --- DİĞER TÜM STİLLER (Aynı kalıyor) --- */
+/* --- SİDEBAR --- */
+div[data-testid="stSidebar"] {{
+    background-color: var(--card-bg-color) !important; /* Sidebar beyaz oldu */
+    border-right: 1px solid var(--border-light);
+    box-shadow: 2px 0 10px rgba(0,0,0,0.05);
+}}
+div[data-testid="stSidebar"] h2, div[data-testid="stSidebar"] label, div[data-testid="stSidebar"] p {{
+    color: var(--text-dark) !important;
+    text-shadow: none;
+}}
+div[data-testid="stSidebar"] .stMultiSelect>div>div, div[data-testid="stSidebar"] .stSlider>div, div[data-testid="stSidebar"] .stTextInput>div>div>input {{
+    background-color: var(--card-bg-color) !important;
+    border: 1px solid var(--border-light);
+    color: var(--text-dark) !important;
+}}
+div[data-testid="stSidebar"] .st-emotion-cache-1g0hp8h {{
+    background-color: var(--primary-color) !important;
+}}
+div[data-testid="stSidebar"] .st-emotion-cache-1g0hp8h > div[data-testid="stThumbValue"] {{
+    background-color: var(--primary-color) !important;
+    border: 2px solid var(--card-bg-color);
+}}
+div[data-testid="stSidebar"] .st-emotion-cache-nahz7x p {{
+    color: var(--text-dark) !important;
+}}
+
+
+/* --- KARTLAR (Düzeltildi) --- */
 .recipe-card-link {{ text-decoration: none; }}
-.recipe-card {{ background-color: var(--card-bg-color) !important; border-radius: 12px; border: 1px solid var(--border-light); box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 1.5rem; overflow: hidden; transition: all 0.3s ease; height: 420px; display: flex; flex-direction: column; }}
+.recipe-card {{ 
+    background-color: var(--card-bg-color) !important; 
+    border-radius: 12px; border: 1px solid var(--border-light); 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
+    margin-bottom: 1.5rem; overflow: hidden; 
+    transition: all 0.3s ease; 
+    height: 440px; /* Kart yüksekliğini artırdık */
+    display: flex; flex-direction: column; 
+}}
 .recipe-card:hover {{ transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }}
-.card-image {{ width: 100%; height: 300px; object-fit: cover; display: block; flex-shrink: 0; }}
+.card-image {{ 
+    width: 100%; 
+    height: 280px; /* Resim yüksekliğini biraz azalttık, alt metin için yer açtık */
+    object-fit: cover; 
+    display: block; 
+    flex-shrink: 0; 
+}}
 .card-body {{ padding: 1rem; flex-grow: 1; display: flex; flex-direction: column; }}
-.card-body h3 {{ font-weight: 700; font-size: 1.1rem; color: var(--text-dark) !important; margin: 0 0 0.5rem 0; line-height: 1.3; height: 2.6em; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }}
-.card-metadata {{ display: flex; flex-direction: row; justify-content: space-between; align-items: center; font-size: 0.8rem; color: #777; margin-top: auto; padding-top: 0.5rem; border-top: 1px solid var(--border-light); }}
-/* ... (diğer stiller) ... */
+.card-body h3 {{ 
+    font-family: 'Quicksand', sans-serif; /* Fontu düzelttik */
+    font-weight: 700; font-size: 1.1rem; color: var(--text-dark) !important; margin: 0 0 0.5rem 0; 
+    line-height: 1.3; 
+    height: auto; /* Otomatik yükseklik, metnin sığmasını sağlar */
+    min-height: 2.6em; /* Minimum 2 satır kadar yer ayır */
+    overflow: hidden; text-overflow: ellipsis; display: -webkit-box; 
+    -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}}
+.card-metadata {{ 
+    display: flex; flex-direction: row; justify-content: space-between; 
+    align-items: center; font-size: 0.9rem; /* Font boyutunu biraz büyüttük */
+    color: var(--text-light); 
+    margin-top: auto; padding-top: 0.75rem; /* Üst boşluğu artırdık */
+    border-top: 1px solid var(--border-light);
+}}
+.card-metadata span {{ 
+    display: flex; align-items: center; gap: 7px; /* İkon ile metin arasına daha fazla boşluk */
+}}
+.card-metadata svg {{ width: 16px; height: 16px; fill: var(--text-light); }} /* İkon boyutunu büyüttük */
+
+/* --- BUTONLAR --- */
+.stButton > button {{
+    background-color: var(--primary-color);
+    color: white;
+    border-radius: 8px;
+    border: none;
+    padding: 0.7rem 1.2rem;
+    font-weight: 600;
+    transition: background-color 0.2s ease;
+    cursor: url('https://cur.cursors-4u.net/symbols/syb-3/syb278.cur'), pointer; /* Buton için özel imleç */
+}}
+.stButton > button:hover {{
+    background-color: #7CB342; /* Hover rengi bir tık daha koyu */
+}}
+.stButton > button:active {{
+    background-color: var(--primary-color);
+}}
+.stButton [data-testid="stFormSubmitButton"] > button {{
+    background-color: var(--primary-color) !important;
+    color: white !important;
+}}
+.stButton [data-testid="stFormSubmitButton"] > button:hover {{
+    background-color: #7CB342 !important;
+}}
+
+
+/* --- FORM ELEMENTLERİ --- */
+.stTextInput>div>div>input, .stSelectbox>div>div, .stTextArea>div>div>textarea, .stNumberInput>div>div>input {{
+    background-color: var(--card-bg-color);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: 0.5rem;
+    color: var(--text-dark);
+}}
+label {{
+    color: var(--text-dark);
+    font-weight: 500;
+}}
+
+/* --- DETAY SAYFASI --- */
+.detail-page-title {{ font-family: 'Dancing Script', cursive !important; font-size: 3.5rem; text-align: center; margin-bottom: 1rem; color: var(--text-dark); }}
+.detail-card {{ padding: 1.5rem; height: 100%; background-color: var(--card-bg-color); border-radius: 12px; border: 1px solid var(--border-light); }}
+.detail-card img {{ width: 100%; border-radius: 8px; object-fit: cover; height: 450px; }}
+.detail-card h5 {{ border-bottom: 2px solid var(--border-light); padding-bottom: 8px; margin-top: 0; color: var(--text-dark); }}
+.detail-card-text {{ white-space: pre-wrap; font-size: 0.9rem; line-height: 1.7; color: var(--text-dark); }}
+
+/* --- YAPAY ZEKA KUTUSU --- */
+.ai-response {{
+    background-color: #E6FFE6; /* Çok açık yeşil */
+    border-left: 5px solid var(--primary-color);
+    padding: 1rem;
+    border-radius: 8px;
+    white-space: pre-wrap;
+    font-family: 'Quicksand', sans-serif;
+    line-height: 1.7;
+    color: var(--text-dark);
+}}
+
 </style>
 """, unsafe_allow_html=True)
 
