@@ -261,7 +261,7 @@ def show_recipe_detail(recipe_id, df):
 # --- GÜNCELLENMİŞ ANA SAYFA FONKSİYONU ---
 def show_main_page():
     # YENİ: Header'ı sayfanın en başında, menüden önce oluşturuyoruz
-    st.markdown("<header><h1>🌸 Ceren'in Defteri 🌸</h1></header>", unsafe_allow_html=True)
+    st.markdown("<header><h1> Ceren'in Defteri </h1></header>", unsafe_allow_html=True)
     
     all_recipes_df = fetch_all_recipes()
     
