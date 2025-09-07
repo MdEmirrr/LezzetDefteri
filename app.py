@@ -249,8 +249,7 @@ def show_recipe_detail(recipe_id, df):
             st.query_params.clear()
             st.rerun()
 
-# --- DÜZENLEME FORMU SAYFASI ---
-# --- DÜZENLEME FORMU SAYFASI (KeyError Düzeltmesi) ---
+# --- DÜZENLEME FORMU SAYFASI (Sayı Değeri Hatası Düzeltmesi) ---
 def show_edit_form(recipe_id, df):
     recipe_df = df[df['id'].astype(str) == str(recipe_id)]
     if recipe_df.empty: st.error("Düzenlenecek tarif bulunamadı."); st.stop()
@@ -258,20 +257,23 @@ def show_edit_form(recipe_id, df):
 
     st.markdown(f"<h2>✏️ Tarifi Düzenle: *{recipe['baslik']}*</h2>", unsafe_allow_html=True)
     with st.form("edit_recipe_form"):
-        # DEĞİŞİKLİK BURADA: 'instagram_reel_link' yerine doğru sütun adı olan 'url' kullanıldı.
         edit_insta_url = st.text_input("Instagram Reel Linki", value=recipe['url'])
-        
         edit_baslik = st.text_input("Tarif Başlığı", value=recipe['baslik'])
         
         kategori_options = sorted(df['kategori'].unique())
         kategori_index = kategori_options.index(recipe['kategori']) if recipe['kategori'] in kategori_options else 0
         edit_kategori = st.selectbox("Kategori", options=kategori_options, index=kategori_index)
         
-        # Zorluk ve süre için de .get() kullanalım ki boş ise hata vermesin
         zorluk_options = ["Basit", "Orta", "Zor"]
         zorluk_index = zorluk_options.index(recipe.get('yemek_zorlugu')) if recipe.get('yemek_zorlugu') in zorluk_options else 0
         edit_yemek_zorlugu = st.selectbox("Yemek Zorluğu", options=zorluk_options, index=zorluk_index)
-        edit_hazirlanma_suresi = st.number_input("Hazırlanma Süresi (dakika)", min_value=1, step=5, value=int(recipe.get('hazirlanma_suresi', 1)))
+        
+        # --- DEĞİŞİKLİK BURADA ---
+        # Değerin 0 olması durumunda bile minimum 1 olmasını sağlıyoruz.
+        süre_degeri = int(recipe.get('hazirlanma_suresi', 1))
+        baslangic_suresi = max(1, süre_degeri)
+        edit_hazirlanma_suresi = st.number_input("Hazırlanma Süresi (dakika)", min_value=1, step=5, value=baslangic_suresi)
+        # -------------------------
         
         edit_malzemeler = st.text_area("Malzemeler (Her satıra bir tane)", value=recipe.get('malzemeler', ''), height=200)
         edit_yapilisi = st.text_area("Yapılışı (Açıklama)", value=recipe.get('yapilisi', ''), height=200)
