@@ -25,18 +25,25 @@ st.markdown(f"""
 h1 {{ font-family: 'Dancing Script', cursive !important; color: #333 !important; text-align: center; }}
 h2, h5 {{ font-family: 'Quicksand', sans-serif !important; color: #333333 !important; font-weight: 700; }}
 
-/* --- ANA SAYFA KARTLARI --- */
+/* --- YENİ: DİKEY ANA SAYFA KARTI TASARIMI --- */
 .recipe-card-link {{ text-decoration: none; }}
 .recipe-card {{
     background-color: #FFFFFF !important;
     border-radius: 12px; border: 1px solid #EAEAEA;
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     margin-bottom: 1.5rem; overflow: hidden;
-    transition: all 0.3s ease; height: 350px;
+    transition: all 0.3s ease; 
+    height: 420px; /* Kartların dikey uzunluğunu artırdık */
     display: flex; flex-direction: column;
 }}
 .recipe-card:hover {{ transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.08); }}
-.card-image {{ width: 100%; height: 220px; object-fit: cover; display: block; flex-shrink: 0; }}
+.card-image {{ 
+    width: 100%; 
+    height: 300px; /* Resim alanını dikey olarak büyüttük */
+    object-fit: cover; 
+    display: block; 
+    flex-shrink: 0; 
+}}
 .card-body {{ padding: 1rem; flex-grow: 1; display: flex; flex-direction: column; }}
 .card-body h3 {{
     font-weight: 700; font-size: 1.1rem; color: #333 !important; margin: 0 0 0.5rem 0;
@@ -52,40 +59,30 @@ h2, h5 {{ font-family: 'Quicksand', sans-serif !important; color: #333333 !impor
 .card-metadata span {{ display: flex; align-items: center; gap: 5px; }}
 .card-metadata svg {{ width: 14px; height: 14px; fill: #777; }}
 
-/* --- YENİ: TARİF DETAY SAYFASI STİLLERİ --- */
-.detail-header {{
-    position: relative;
-    width: 100%;
-    height: 450px; /* Dikey dikdörtgen görünüm */
-    background-image: linear-gradient(to top, rgba(0,0,0,0.7), transparent 50%), var(--bg-image);
-    background-size: cover;
-    background-position: center;
-    border-radius: 12px;
-    display: flex;
-    align-items: flex-end; /* Başlığı aşağı hizala */
-    padding: 2rem;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+/* --- YENİ: 3 SÜTUNLU DETAY SAYFASI --- */
+.detail-page-title {{ 
+    font-family: 'Dancing Script', cursive !important; 
+    font-size: 3.5rem; 
+    text-align: center;
+    margin-bottom: 1rem;
 }}
-.detail-title-overlay {{
-    font-family: 'Dancing Script', cursive !important;
-    font-size: 4rem;
-    color: #FFFFFF !important;
-    text-shadow: 2px 2px 8px rgba(0,0,0,0.8);
-    margin: 0;
-}}
-.content-card {{
+.detail-card {{
     background-color: #FFFFFF;
     border-radius: 12px;
     padding: 1.5rem;
     border: 1px solid #EAEAEA;
-    height: 100%; /* Sütun yüksekliğini eşitlemek için */
+    height: 100%; /* Sütunların aynı hizada durmasını sağlar */
 }}
-.content-card h5 {{
+.detail-card img {{
+    width: 100%;
+    border-radius: 8px;
+}}
+.detail-card h5 {{
     border-bottom: 2px solid #F0F0F0;
     padding-bottom: 8px;
     margin-top: 0;
 }}
-.content-card-text {{
+.detail-card-text {{
     white-space: pre-wrap;
     font-size: 0.9rem;
     line-height: 1.7;
@@ -125,9 +122,6 @@ def fetch_all_recipes():
         if 'hazirlanma_suresi' in df.columns:
             df['hazirlanma_suresi'] = pd.to_numeric(df['hazirlanma_suresi'], errors='coerce').fillna(0).astype(int)
     return df
-
-# ... Diğer yardımcı fonksiyonlar (get_instagram_thumbnail, build_sidebar, display_recipe_cards_final) aynı kalacak ...
-# ... (Kodun devamında bu fonksiyonlar mevcut)
 
 def get_instagram_thumbnail(url):
     try:
@@ -188,80 +182,43 @@ def display_recipe_cards_final(df):
                 </div>
             </a>""", unsafe_allow_html=True)
 
-# YENİ: AKILLI TARİF ÖNERME FONKSİYONU
-def recommend_similar_recipes(current_recipe_id, df, num_recommendations=4):
-    # Ana tarifin malzemelerini bir sete dönüştür
-    try:
-        current_ingredients_str = df[df['id'] == current_recipe_id]['malzemeler'].iloc[0]
-        current_ingredients = set(ing.strip().lower() for ing in current_ingredients_str.split('\n') if ing.strip())
-    except (IndexError, AttributeError):
-        return pd.DataFrame() # Malzeme listesi yoksa boş dönder
-
-    scores = []
-    # Diğer tüm tariflerle karşılaştır
-    for index, row in df.iterrows():
-        if row['id'] == current_recipe_id:
-            continue
-        
-        other_ingredients_str = row.get('malzemeler', '')
-        if not other_ingredients_str:
-            continue
-        other_ingredients = set(ing.strip().lower() for ing in other_ingredients_str.split('\n') if ing.strip())
-        
-        # Jaccard Benzerlik Skoru
-        intersection = len(current_ingredients.intersection(other_ingredients))
-        union = len(current_ingredients.union(other_ingredients))
-        score = intersection / union if union != 0 else 0
-        scores.append({'id': row['id'], 'similarity': score})
-    
-    if not scores:
-        return pd.DataFrame()
-        
-    # Skorları sırala ve en iyi N tanesini al
-    similar_ids = [score['id'] for score in sorted(scores, key=lambda x: x['similarity'], reverse=True)[:num_recommendations]]
-    return df[df['id'].isin(similar_ids)]
-
-
 # --- BAŞTAN YARATILAN TARİF DETAY SAYFASI FONKSİYONU ---
 def show_recipe_detail(recipe_id, df):
     recipe_df = df[df['id'].astype(str) == str(recipe_id)]
     if recipe_df.empty: st.error("Aradığınız tarif bulunamadı."); st.stop()
     recipe = recipe_df.iloc[0]
     
-    # Sayfanın en üstündeki geri butonu
     if st.button("⬅️ Tüm Tariflere Geri Dön"):
         st.query_params.clear(); st.rerun()
 
-    # YENİ: RESİM ÜSTÜ BAŞLIK TASARIMI
-    st.markdown(f"""
-        <div class="detail-header" style="--bg-image: url('{recipe['thumbnail_url']}')">
-            <h1 class="detail-title-overlay">{recipe['baslik']}</h1>
-        </div>
-    """, unsafe_allow_html=True)
+    st.markdown(f"<h1 class='detail-page-title'>{recipe['baslik']}</h1>", unsafe_allow_html=True)
+    st.markdown("---")
     
-    # YENİ: YAN YANA MALZEMELER VE YAPILIŞI
-    st.write("") # Boşluk bırakmak için
-    col1, col2 = st.columns(2)
+    # YENİ 3 SÜTUNLU YAPI
+    col1, col2, col3 = st.columns([2, 2, 2], gap="large")
+    
     with col1:
-        with st.container(border=True, height=400): # Yüksekliği sabitle
-             st.markdown("<h5>Malzemeler</h5>", unsafe_allow_html=True)
-             st.markdown(f"<div class='content-card-text'>{recipe.get('malzemeler', 'Eklenmemiş')}</div>", unsafe_allow_html=True)
+        st.markdown(f"""
+        <div class="detail-card">
+            <img src="{recipe['thumbnail_url']}" alt="{recipe['baslik']}">
+        </div>
+        """, unsafe_allow_html=True)
 
     with col2:
-        with st.container(border=True, height=400): # Yüksekliği sabitle
-            st.markdown("<h5>Yapılışı</h5>", unsafe_allow_html=True)
-            st.markdown(f"<div class='content-card-text'>{recipe.get('yapilisi', 'Eklenmemiş')}</div>", unsafe_allow_html=True)
+        st.markdown(f"""
+        <div class="detail-card">
+            <h5>Malzemeler</h5>
+            <div class="detail-card-text">{recipe.get('malzemeler', 'Eklenmemiş')}</div>
+        </div>
+        """, unsafe_allow_html=True)
 
-    # YENİ: AKILLI TARİF ÖNERİ SİSTEMİ
-    st.markdown("---")
-    st.markdown("<h2>Malzemelere Göre Benzer Tarifler</h2>", unsafe_allow_html=True)
-    recommended_recipes = recommend_similar_recipes(recipe['id'], df)
-    
-    if not recommended_recipes.empty:
-        display_recipe_cards_final(recommended_recipes)
-    else:
-        st.info("Bu tarife benzer başka tarif bulunamadı.")
-
+    with col3:
+        st.markdown(f"""
+        <div class="detail-card">
+            <h5>Yapılışı</h5>
+            <div class="detail-card-text">{recipe.get('yapilisi', 'Eklenmemiş')}</div>
+        </div>
+        """, unsafe_allow_html=True)
 
 # --- ANA SAYFA GÖRÜNÜMÜ ---
 def show_main_page():
@@ -285,7 +242,7 @@ def show_main_page():
         for category, ingredients in CATEGORIZED_INGREDIENTS.items():
             ingredients_to_show = [ing for ing in ingredients if ingredient_search.lower() in ing.lower()] if ingredient_search else ingredients
             if ingredients_to_show:
-                with st.expander(category, expanded=bool(ingredient_search)): # Arama yapılıyorsa expander açık gelsin
+                with st.expander(category, expanded=bool(ingredient_search)):
                     cols = st.columns(4)
                     for i, ingredient in enumerate(ingredients_to_show):
                         with cols[i % 4]:
@@ -301,7 +258,6 @@ def show_main_page():
             st.info("Sonuçları görmek için yukarıdan malzeme seçin.")
 
     elif selected_page == "Yeni Tarif Ekle":
-        # ... Bu kısım aynı ...
         st.markdown("<h2>Yeni Bir Tarif Ekle</h2>", unsafe_allow_html=True)
         with st.form("new_recipe_page_form", clear_on_submit=True):
             col1, col2 = st.columns(2)
