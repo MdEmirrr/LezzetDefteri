@@ -11,9 +11,8 @@ import json
 import re
 import time
 import random
-import google.generativeai as genai # --- YENİ: Yapay zeka kütüphanesi
 
-# --- GÖRSEL AYARLAR VE YENİ TASARIM (CSS) ---
+# --- GÖRSEL AYARLAR VE STİL ---
 st.set_page_config(page_title="Ceren'in Defteri", layout="wide")
 
 st.markdown(f"""
@@ -21,190 +20,87 @@ st.markdown(f"""
 @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');
 
-/* --- YENİ YEŞİL & KREM RENK PALETİ --- */
+/* --- YEŞİL & KREM RENK PALETİ --- */
 :root {{
-    --primary-green: #6B8E23;     /* Koyu Zeytin Yeşili - Vurgu, Butonlar */
-    --secondary-green: #A2CD5A;   /* Açık Zeytin Yeşili - Menü Seçili */
-    --background-cream: #FDF5E6;  /* Krem Arka Plan */
-    --card-bg-color: #FFFFFF;     /* Kartlar ve Sidebar - Beyaz */
-    --text-dark: #36454F;         /* Koyu Antrasit - Ana Metin */
-    --text-light: #5A5A5A;        /* Gri - Alt Metinler */
-    --border-light: #E0E0E0;      /* İnce Sınırlar */
+    --primary-green: #9fc031;      /* Ana Yeşil */
+    --secondary-green: #a6a994;   /* Haki Yeşil - Hover & Seçili */
+    --background-cream: #fde4ce;  /* Arka Plan - Krem/Şeftali */
+    --card-bg-color: #FFFFFF;     /* Kartlar - Beyaz */
+    --text-color: #4a4a4a;        /* Koyu Metin Rengi */
+    --subtle-color: #cfcac4;      /* İnce Detaylar - Bej */
 }}
 
 /* --- GENEL SAYFA AYARLARI --- */
 .stApp {{
-    background-color: var(--background-cream); /* Tüm sayfa arka planı */
+    background-color: var(--background-cream);
     font-family: 'Quicksand', sans-serif;
 }}
-
-/* Streamlit'in varsayılan üst boşluğunu kaldırarak header'ı en üste yapıştırıyoruz */
+/* Streamlit'in varsayılan üst boşluğunu kaldırıyoruz */
 div[data-testid="stAppViewContainer"] > .main {{
     padding-top: 0rem;
 }}
 
-/* --- HEADER TASARIMI --- */
+/* --- HEADER --- */
 header {{
-    background-image: linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(0,0,0,0.1)),
-                      url("https://plus.unsplash.com/premium_photo-1663099777846-62e0c092ce0b?q=80&w=1349&auto=format&fit=crop");
-    background-size: cover;
-    background-position: center 35%; /* Resmin dikey konumunu ayarla */
-    padding: 3rem 1rem; /* İç boşluğu artırarak daha ferah bir görünüm */
+    background-color: var(--card-bg-color);
+    padding: 1rem;
     border-bottom: 2px solid var(--primary-green);
-    text-align: center;
-    margin-bottom: 2rem;
 }}
-
 header h1 {{
     font-family: 'Dancing Script', cursive !important;
-    color: var(--card-bg-color) !important; /* Beyaz renk, resim üzerinde daha iyi durur */
-    font-size: 4.5rem; /* Başlığı daha da büyüttük */
-    text-shadow: 2px 2px 5px rgba(0,0,0,0.6);
+    color: var(--text-color) !important;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
     margin: 0;
+    text-align: center;
+}}
+div[data-testid="stHeading"] {{ display: none; }}
+
+/* --- SOL MENÜ (SIDEBAR) --- */
+[data-testid="stSidebar"] {{
+    background-color: var(--primary-green) !important; /* Sidebar yeşil oldu */
+    border-right: 1px solid var(--primary-green);
+}}
+[data-testid="stSidebar"] h2, [data-testid="stSidebar"] label {{
+    color: white !important; /* Sidebar içindeki yazılar beyaz oldu */
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+}}
+[data-testid="stSidebar"] .stMultiSelect>div>div, [data-testid="stSidebar"] .stSlider>div {{
+    background-color: rgba(255,255,255,0.2);
+    border: none;
+}}
+[data-testid="stSidebar"] .st-emotion-cache-1g0hp8h {{
+    background-color: var(--secondary-green);
 }}
 
-/* Streamlit'in ana başlığını gizle, bizim header'ımız görünsün */
-div[data-testid="stHeading"] {{
-    display: none;
-}}
-
-/* --- SİDEBAR --- */
-div[data-testid="stSidebar"] {{
-    background-color: var(--card-bg-color); /* Sidebar da beyaz oldu */
-    border-right: 1px solid var(--border-light);
-    box-shadow: 2px 0 10px rgba(0,0,0,0.05); /* Hafif gölge ekledik */
-}}
-
-/* --- ANA MENÜ (Tüm Tarifler, Favorilerim vb.) --- */
-nav.st-emotion-cache-19rxjzo {{ /* Bu selector menünün ana konteynerini hedefler */
-    background-color: var(--card-bg-color); /* Menü arka planı beyaz */
+/* --- ÜST NAVİGASYON MENÜSÜ --- */
+nav.st-emotion-cache-19rxjzo {{
+    background-color: var(--card-bg-color);
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    margin-bottom: 2rem;
-    padding: 0.5rem; /* İç boşluk ekledik */
-    border: 1px solid var(--border-light);
-}}
-.st-emotion-cache-1nm7f8b {{ /* Seçili menü öğesinin ana div'i */
-    background-color: var(--secondary-green) !important; /* Seçili menü öğesi yeşil */
-    border-radius: 8px;
-    color: white !important;
-}}
-.st-emotion-cache-1nm7f8b p {{ /* Seçili menü öğesinin metni */
-    color: white !important;
-    font-weight: 600;
-}}
-.st-emotion-cache-1nm7f8b:hover {{
-    background-color: var(--primary-green) !important; /* Hover rengi daha koyu yeşil */
-}}
-.st-emotion-cache-pkpr8m p {{ /* Diğer menü öğelerinin metinleri */
-    color: var(--text-dark) !important;
-}}
-.st-emotion-cache-pkpr8m:hover {{
-    background-color: var(--border-light) !important; /* Hover rengi açık gri */
-    border-radius: 8px;
-}}
-
-
-/* --- KARTLAR --- */
-.recipe-card-link {{ text-decoration: none; }}
-.recipe-card {{
-    background-color: var(--card-bg-color) !important;
-    border-radius: 12px; border: 1px solid var(--border-light);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    margin-bottom: 1.5rem; overflow: hidden;
-    transition: all 0.3s ease; height: 420px;
-    display: flex; flex-direction: column;
-}}
-.recipe-card:hover {{ transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }}
-.card-image {{ 
-    width: 100%; 
-    height: 300px; 
-    object-fit: cover;
-    display: block; 
-    flex-shrink: 0; 
-}}
-.card-body {{ padding: 1rem; flex-grow: 1; display: flex; flex-direction: column; }}
-.card-body h3 {{
-    font-weight: 700; font-size: 1.1rem; color: var(--text-dark) !important; margin: 0 0 0.5rem 0;
-    line-height: 1.3; height: 2.6em;
-    overflow: hidden; text-overflow: ellipsis; display: -webkit-box;
-    -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-}}
-.card-metadata {{
-    display: flex; flex-direction: row; justify-content: space-between;
-    align-items: center; font-size: 0.8rem; color: var(--text-light);
-    margin-top: auto; padding-top: 0.5rem; border-top: 1px solid var(--border-light);
-}}
-.card-metadata span {{ display: flex; align-items: center; gap: 5px; }}
-.card-metadata svg {{ width: 14px; height: 14px; fill: var(--text-light); }}
-
-/* --- BUTONLAR --- */
-.stButton > button {{
-    background-color: var(--primary-green);
-    color: white;
-    border-radius: 8px;
-    border: none;
-    padding: 0.7rem 1.2rem;
-    font-weight: 600;
-    transition: background-color 0.2s ease;
-}}
-.stButton > button:hover {{
-    background-color: var(--secondary-green);
-}}
-.stButton > button:active {{
-    background-color: var(--primary-green);
-}}
-
-/* --- TEXT INPUT / SELECTBOX / SLIDER VB. GİBİ FORUM ELEMENTLERİ --- */
-.stTextInput>div>div>input, .stSelectbox>div>div, .stTextArea>div>div>textarea, .stNumberInput>div>div>input {{
-    background-color: var(--card-bg-color);
-    border: 1px solid var(--border-light);
-    border-radius: 8px;
+    margin: 0 auto 2rem auto;
     padding: 0.5rem;
-    color: var(--text-dark);
-}}
-.st-emotion-cache-1g0hp8h {{ /* Slider track rengi */
-    background-color: var(--secondary-green);
-}}
-.st-emotion-cache-1g0hp8h > div[data-testid="stThumbValue"] {{ /* Slider thumb rengi */
-    background-color: var(--primary-green);
-    border: 2px solid var(--card-bg-color);
-}}
-label {{
-    color: var(--text-dark);
-    font-weight: 500;
+    width: fit-content;
 }}
 
-/* --- DETAY SAYFASI --- */
-.detail-page-title {{ font-family: 'Dancing Script', cursive !important; font-size: 3.5rem; text-align: center; margin-bottom: 1rem; color: var(--text-dark); }}
-.detail-card {{ padding: 1.5rem; height: 100%; background-color: var(--card-bg-color); border-radius: 12px; border: 1px solid var(--border-light); }}
+/* --- KARTLAR (Aynı) --- */
+.recipe-card-link {{ text-decoration: none; }}
+.recipe-card {{ background-color: var(--card-bg-color) !important; border-radius: 12px; border: 1px solid #EAEAEA; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 1.5rem; overflow: hidden; transition: all 0.3s ease; height: 420px; display: flex; flex-direction: column; }}
+.recipe-card:hover {{ transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }}
+.card-image {{ width: 100%; height: 300px; object-fit: cover; display: block; flex-shrink: 0; }}
+.card-body {{ padding: 1rem; flex-grow: 1; display: flex; flex-direction: column; }}
+.card-body h3 {{ font-weight: 700; font-size: 1.1rem; color: var(--text-color) !important; margin: 0 0 0.5rem 0; line-height: 1.3; height: 2.6em; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }}
+.card-metadata {{ display: flex; flex-direction: row; justify-content: space-between; align-items: center; font-size: 0.8rem; color: #777; margin-top: auto; padding-top: 0.5rem; border-top: 1px solid #F0F0F0; }}
+.card-metadata span {{ display: flex; align-items: center; gap: 5px; }}
+.card-metadata svg {{ width: 14px; height: 14px; fill: var(--subtle-color); }}
+
+/* --- DETAY SAYFASI (Aynı) --- */
+.detail-page-title {{ font-family: 'Dancing Script', cursive !important; font-size: 3.5rem; text-align: center; margin-bottom: 1rem; color: var(--text-color); }}
+.detail-card {{ padding: 1.5rem; height: 100%; background-color: var(--card-bg-color); border-radius: 12px; border: 1px solid #EAEAEA; }}
 .detail-card img {{ width: 100%; border-radius: 8px; object-fit: cover; height: 450px; }}
-.detail-card h5 {{ border-bottom: 2px solid var(--border-light); padding-bottom: 8px; margin-top: 0; color: var(--text-dark); }}
-.detail-card-text {{ white-space: pre-wrap; font-size: 0.9rem; line-height: 1.7; color: var(--text-dark); }}
-
-/* --- YAPAY ZEKA KUTUSU --- */
-.ai-response {{
-    background-color: #E6FFE6; /* Çok açık yeşil */
-    border-left: 5px solid var(--primary-green);
-    padding: 1rem;
-    border-radius: 8px;
-    white-space: pre-wrap;
-    font-family: 'Quicksand', sans-serif;
-    line-height: 1.7;
-    color: var(--text-dark);
-}}
-
+.detail-card h5 {{ border-bottom: 2px solid #F0F0F0; padding-bottom: 8px; margin-top: 0; }}
+.detail-card-text {{ white-space: pre-wrap; font-size: 0.9rem; line-height: 1.7; }}
 </style>
 """, unsafe_allow_html=True)
-
-# --- YENİ: YAPAY ZEKA AYARLARI ---
-try:
-    GEMINI_API_KEY = st.secrets["google_ai"]["api_key"]
-    genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel('gemini-1.5-flash')
-    ai_enabled = True
-except Exception:
-    ai_enabled = False
 
 # ... (Diğer sabitler ve veritabanı bağlantısı aynı) ...
 CATEGORIZED_INGREDIENTS = {
@@ -227,6 +123,7 @@ except Exception as e:
 
 
 # --- YARDIMCI FONKSİYONLAR ---
+# ... (fetch_all_recipes, get_instagram_thumbnail, build_sidebar, display_recipe_cards_final aynı kalıyor)
 @st.cache_data(ttl=600)
 def fetch_all_recipes():
     records = worksheet.get_all_records()
@@ -238,8 +135,6 @@ def fetch_all_recipes():
             df['hazirlanma_suresi'] = pd.to_numeric(df['hazirlanma_suresi'], errors='coerce').fillna(0).astype(int)
     return df
 
-# ... (get_instagram_thumbnail, build_sidebar, display_recipe_cards_final fonksiyonları aynı) ...
-# (Kodun okunabilirliği için buraya tekrar eklemiyorum, ama tam kodda mevcutlar)
 def get_instagram_thumbnail(url):
     try:
         headers = {'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 13_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1.1 Mobile/15E148 Safari/604.1'}
@@ -299,48 +194,30 @@ def display_recipe_cards_final(df):
                 </div>
             </a>""", unsafe_allow_html=True)
 
-
-# --- YENİ: YAPAY ZEKA FONKSİYONU ---
-def generate_recipe_with_ai(ingredients):
-    if not ai_enabled:
-        st.error("Yapay zeka özelliği için API anahtarı yapılandırılmamış.")
-        return
-        
-    prompt = f"""
-    Elimde sadece şu malzemeler var: {', '.join(ingredients)}.
-    Bu malzemeleri kullanarak basit, lezzetli ve yaratıcı bir yemek tarifi oluştur. 
-    Tarife ilgi çekici bir isim bul.
-    Malzemeler listesini ve adım adım yapılışını açıkça belirt.
-    Tarifi 'Ceren'in Defteri'ne özel, samimi ve arkadaş canlısı bir dille yaz.
-    """
-    
-    try:
-        response = model.generate_content(prompt, stream=True)
-        return response
-    except Exception as e:
-        st.error(f"Yapay zeka ile tarif oluşturulurken bir hata oluştu: {e}")
-        return None
-
 # --- GÜNCELLENMİŞ DETAY SAYFASI ---
 def show_recipe_detail(recipe_id, df):
-    # ... (Bir önceki versiyondaki gibi, alışveriş listesi butonu kaldırıldı)
     recipe_df = df[df['id'].astype(str) == str(recipe_id)]
     if recipe_df.empty: st.error("Aradığınız tarif bulunamadı."); st.stop()
     recipe = recipe_df.iloc[0]
     
-    if st.button("⬅️ Tüm Tariflere Geri Dön"):
-        st.query_params.clear(); st.rerun()
+    # YENİ: Butonlar için sütunlar
+    col_b1, col_b2, col_b3, col_b4 = st.columns([2, 2, 2, 6])
+    with col_b1:
+        if st.button("⬅️ Geri"):
+            st.query_params.clear(); st.rerun()
+    with col_b2:
+        is_favorite = recipe.get('favori') == 'EVET'
+        fav_text = "⭐ Favoriden Çıkar" if is_favorite else "⭐ Favorilere Ekle"
+        if st.button(fav_text):
+            cell = worksheet.find(str(recipe['id'])); favori_col_index = worksheet.row_values(1).index('favori') + 1
+            new_status = "HAYIR" if is_favorite else "EVET"; worksheet.update_cell(cell.row, favori_col_index, new_status)
+            st.cache_data.clear(); st.rerun()
+    with col_b3:
+        if st.button("✏️ Düzenle"):
+            st.session_state.recipe_to_edit_id = recipe['id']
+            st.query_params.clear(); st.rerun()
 
     st.markdown(f"<h1 class='detail-page-title'>{recipe['baslik']}</h1>", unsafe_allow_html=True)
-    is_favorite = recipe.get('favori') == 'EVET'
-    fav_text = "⭐ Favoriden Çıkar" if is_favorite else "⭐ Favorilere Ekle"
-    if st.button(fav_text):
-        cell = worksheet.find(str(recipe['id']))
-        favori_col_index = worksheet.row_values(1).index('favori') + 1
-        new_status = "HAYIR" if is_favorite else "EVET"
-        worksheet.update_cell(cell.row, favori_col_index, new_status)
-        st.cache_data.clear(); st.rerun()
-
     st.markdown("---")
     
     col1, col2, col3 = st.columns([2, 2, 2], gap="large")
@@ -350,39 +227,90 @@ def show_recipe_detail(recipe_id, df):
         st.markdown(f"""<div class="detail-card"><h5>Malzemeler</h5><div class="detail-card-text">{recipe.get('malzemeler', 'Eklenmemiş')}</div></div>""", unsafe_allow_html=True)
     with col3:
         st.markdown(f"""<div class="detail-card"><h5>Yapılışı</h5><div class="detail-card-text">{recipe.get('yapilisi', 'Eklenmemiş')}</div></div>""", unsafe_allow_html=True)
+    
+    # Silme butonu için tehlikeli bölge
+    st.markdown("---")
+    with st.expander("🔴 Tarifi Kalıcı Olarak Sil"):
+        st.warning("Bu işlem geri alınamaz. Tarifi silmek istediğinizden emin misiniz?")
+        if st.button("Evet, Bu Tarifi Sil", type="primary"):
+            cell = worksheet.find(str(recipe['id']))
+            worksheet.delete_rows(cell.row)
+            st.cache_data.clear()
+            st.success(f"'{recipe['baslik']}' tarifi kalıcı olarak silindi.")
+            time.sleep(2)
+            st.query_params.clear()
+            st.rerun()
 
-# --- GÜNCELLENMİŞ ANA SAYFA FONKSİYONU (HEADER DEĞİŞİKLİĞİ) ---
+# --- YENİ: DÜZENLEME FORMU SAYFASI ---
+def show_edit_form(recipe_id, df):
+    recipe_df = df[df['id'].astype(str) == str(recipe_id)]
+    if recipe_df.empty: st.error("Düzenlenecek tarif bulunamadı."); st.stop()
+    recipe = recipe_df.iloc[0].to_dict()
+
+    st.markdown(f"<h2>✏️ Tarifi Düzenle: *{recipe['baslik']}*</h2>", unsafe_allow_html=True)
+    with st.form("edit_recipe_form"):
+        # Form elemanları...
+        edit_baslik = st.text_input("Tarif Başlığı", value=recipe['baslik'])
+        kategori_options = sorted(df['kategori'].unique())
+        kategori_index = kategori_options.index(recipe['kategori']) if recipe['kategori'] in kategori_options else 0
+        edit_kategori = st.selectbox("Kategori", options=kategori_options, index=kategori_index)
+        edit_yemek_zorlugu = st.selectbox("Yemek Zorluğu", options=["Basit", "Orta", "Zor"], index=["Basit", "Orta", "Zor"].index(recipe['yemek_zorlugu']))
+        edit_hazirlanma_suresi = st.number_input("Hazırlanma Süresi (dakika)", min_value=1, step=5, value=recipe['hazirlanma_suresi'])
+        edit_malzemeler = st.text_area("Malzemeler", value=recipe.get('malzemeler', ''), height=200)
+        edit_yapilisi = st.text_area("Yapılışı", value=recipe.get('yapilisi', ''), height=200)
+
+        submitted_edit = st.form_submit_button("💾 Değişiklikleri Kaydet")
+        if submitted_edit:
+            try:
+                cell = worksheet.find(str(recipe['id']))
+                # Sütun isimlerine göre güncelleme yapalım
+                header = worksheet.row_values(1)
+                worksheet.update_cell(cell.row, header.index('baslik') + 1, edit_baslik)
+                worksheet.update_cell(cell.row, header.index('kategori') + 1, edit_kategori)
+                worksheet.update_cell(cell.row, header.index('yemek_zorlugu') + 1, edit_yemek_zorlugu)
+                worksheet.update_cell(cell.row, header.index('hazirlanma_suresi') + 1, edit_hazirlanma_suresi)
+                worksheet.update_cell(cell.row, header.index('malzemeler') + 1, edit_malzemeler)
+                worksheet.update_cell(cell.row, header.index('yapilisi') + 1, edit_yapilisi)
+                
+                st.success("Tarif başarıyla güncellendi!")
+                st.cache_data.clear()
+                st.session_state.recipe_to_edit_id = None # Edit modundan çık
+                time.sleep(1)
+                st.rerun()
+            except Exception as e:
+                st.error(f"Güncelleme sırasında bir hata oluştu: {e}")
+
+    if st.button("İptal"):
+        st.session_state.recipe_to_edit_id = None
+        st.rerun()
+
+# --- ANA SAYFA GÖRÜNÜMÜ ---
 def show_main_page():
-    # YENİ: Header'ı sayfanın en başında, menüden önce oluşturuyoruz
-    # Başlık artık doğrudan header'ın içinde.
-    st.markdown("""
-        <header>
-            <h1>🌸 Ceren'in Defteri 🌸</h1>
-        </header>
-    """, unsafe_allow_html=True)
-    
+    st.markdown("<header><h1>🌸 Ceren'in Defteri 🌸</h1></header>", unsafe_allow_html=True)
     all_recipes_df = fetch_all_recipes()
-    
-    # Menü artık header'ın altında görünecek
     selected_page = option_menu(
-        menu_title=None, options=["Tüm Tarifler", "⭐ Favorilerim", "Ne Pişirsem?", "Yeni Tarif Ekle"],
-        icons=['card-list', 'star-fill', 'lightbulb', 'plus-circle'], menu_icon="cast", default_index=0, orientation="horizontal"
+        menu_title=None, 
+        options=["Tüm Tarifler", "⭐ Favorilerim", "Ne Pişirsem?", "Yeni Tarif Ekle"],
+        icons=['card-list', 'star-fill', 'lightbulb', 'plus-circle'], 
+        menu_icon="cast", default_index=0, orientation="horizontal",
+        styles={ # YENİ: Menü Stilleri
+            "container": {"background-color": "#FFFFFF", "border-radius": "12px", "box-shadow": "0 4px 12px rgba(0,0,0,0.05)", "padding": "0.5rem", "width": "fit-content", "margin": "0 auto 2rem auto"},
+            "nav-link": {"font-weight": "600", "color": "#4a4a4a"},
+            "nav-link-selected": {"background-color": "#a6a994", "color": "white"}
+        }
     )
-
-    # Fonksiyonun geri kalanı aynı...
+    # ... (Geri kalanı aynı)
     if selected_page == "Tüm Tarifler":
         filtered_recipes = build_sidebar(all_recipes_df)
         display_recipe_cards_final(filtered_recipes.sort_values(by='id', ascending=False))
-
     elif selected_page == "⭐ Favorilerim":
         st.markdown("<h2>⭐ Favori Tariflerim</h2>", unsafe_allow_html=True)
         favorites_df = all_recipes_df[all_recipes_df['favori'] == 'EVET']
         display_recipe_cards_final(favorites_df.sort_values(by='id', ascending=False))
-
     elif selected_page == "Ne Pişirsem?":
+        #... (Aynı)
         st.markdown("<h2>Ne Pişirsem?</h2>", unsafe_allow_html=True)
         ingredient_search = st.text_input("Malzeme Ara...", placeholder="Aradığın malzemeyi yazarak listeyi kısalt...")
-        
         selected_ingredients = []
         for category, ingredients in CATEGORIZED_INGREDIENTS.items():
             ingredients_to_show = [ing for ing in ingredients if ingredient_search.lower() in ing.lower()] if ingredient_search else ingredients
@@ -394,32 +322,25 @@ def show_main_page():
                             if st.checkbox(ingredient, key=f"ing_{ingredient}"):
                                 selected_ingredients.append(ingredient)
         st.write("---")
-        
         col1, col2 = st.columns(2)
         with col1:
             find_recipe_button = st.button("🧑‍🍳 Bu Malzemelerle Tarif Bul", use_container_width=True)
         with col2:
-            ai_recipe_button = st.button("🤖 Yapay Zekadan Tarif İste!", use_container_width=True, type="primary", disabled=not ai_enabled)
-
+            ai_recipe_button = st.button("🤖 Yapay Zekadan Tarif İste!", use_container_width=True, type="primary")
         if find_recipe_button and selected_ingredients:
             filtered_df = all_recipes_df.copy()
             for ingredient in selected_ingredients:
                 filtered_df = filtered_df[filtered_df['malzemeler'].str.contains(ingredient.lower(), case=False, na=False)]
             display_recipe_cards_final(filtered_df.sort_values(by='id', ascending=False))
-        
         if ai_recipe_button and selected_ingredients:
             with st.spinner("Yapay zeka şefimiz sizin için özel bir tarif hazırlıyor..."):
-                ai_response = generate_recipe_with_ai(selected_ingredients)
-                if ai_response:
-                    st.markdown("### 🤖 Yapay Zeka Şefin Önerisi")
-                    st.write_stream(chunk.text for chunk in ai_response)
-
+                ai_response = "Yapay zeka özelliği şu an aktif değil." # Örnek
+                st.markdown("### 🤖 Yapay Zeka Şefin Önerisi")
+                st.write(ai_response)
         if not selected_ingredients and (find_recipe_button or ai_recipe_button):
              st.warning("Lütfen önce en az bir malzeme seçin.")
-        elif not selected_ingredients:
-             st.info("Sonuçları görmek için yukarıdan malzeme seçin ve bir butona basın.")
-
     elif selected_page == "Yeni Tarif Ekle":
+        # ... (Aynı)
         st.markdown("<h2>Yeni Bir Tarif Ekle</h2>", unsafe_allow_html=True)
         with st.form("new_recipe_page_form", clear_on_submit=True):
             col1, col2 = st.columns(2)
@@ -439,7 +360,7 @@ def show_main_page():
                     with st.spinner("İşleniyor..."):
                         thumbnail_url = get_instagram_thumbnail(insta_url)
                         if thumbnail_url:
-                            new_row = [datetime.now().strftime("%Y%m%d%H%M%S"), insta_url, tarif_basligi, yapilisi, malzemeler, kategori, datetime.now().strftime("%Y-%m-%d %H%M%S"), thumbnail_url, yemek_zorlugu, hazirlanma_suresi, "HAYIR"]
+                            new_row = [datetime.now().strftime("%Y%m%d%H%M%S"), insta_url, tarif_basligi, yapilisi, malzemeler, kategori, datetime.now().strftime("%Y-%m-%d %H:%M%S"), thumbnail_url, yemek_zorlugu, hazirlanma_suresi, "HAYIR"]
                             worksheet.append_row(new_row, value_input_option='USER_ENTERED')
                             st.cache_data.clear()
                             st.success("Tarif başarıyla kaydedildi!")
@@ -447,10 +368,15 @@ def show_main_page():
                 else: st.warning("Lütfen en azından Link ve Başlık alanlarını doldurun.")
 
 # --- ANA UYGULAMA YÖNLENDİRİCİSİ (ROUTER) ---
-params = st.query_params
-if "id" in params:
-    recipe_id = params.get("id")
-    all_recipes_df = fetch_all_recipes()
+if 'recipe_to_edit_id' not in st.session_state:
+    st.session_state.recipe_to_edit_id = None
+
+all_recipes_df = fetch_all_recipes()
+
+if st.session_state.recipe_to_edit_id is not None:
+    show_edit_form(st.session_state.recipe_to_edit_id, all_recipes_df)
+elif "id" in st.query_params:
+    recipe_id = st.query_params.get("id")
     show_recipe_detail(recipe_id, all_recipes_df)
 else:
     show_main_page()
