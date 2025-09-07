@@ -335,7 +335,6 @@ def display_recipe_cards_final(df):
                 <div class="recipe-card">
                     <img src="{recipe['thumbnail_url']}" class="card-image">
                     <div class="card-body">
-                        {/* --- DEĞİŞİKLİK BURADA --- */}
                         <h3>{html.escape(str(recipe.get('baslik','')).title())}</h3>
                         <div class="card-metadata">
                             <span title="Zorluk"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.2,10.2l-1-5A1,1,0,0,0,18.22,4H5.78a1,1,0,0,0-1,.81l-1,5a1,1,0,0,0,0,.38V18a2,2,0,0,0,2,2H18a2,2,0,0,0,2-2V10.58A1,1,0,0,0,20.2,10.2ZM5.2,6H18.8l.6,3H4.6ZM18,18H6V12H18Z"/></svg><b>{recipe.get('yemek_zorlugu', 'N/A')}</b></span>
