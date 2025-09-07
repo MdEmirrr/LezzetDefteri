@@ -21,51 +21,95 @@ st.markdown(f"""
 @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');
 
-/* --- YENİ YEŞİL RENK PALETİ --- */
+/* --- YENİ YEŞİL & KREM RENK PALETİ --- */
 :root {{
-    --primary-color: #9fc031;      /* Ana Yeşil */
-    --secondary-color: #fde4ce;   /* Arka Plan - Krem/Şeftali */
-    --card-bg-color: #FFFFFF;     /* Kartlar - Beyaz */
-    --text-color: #4a4a4a;        /* Koyu Metin Rengi */
-    --subtle-color: #a6a994;      /* İnce Detaylar - Haki Yeşil */
-    --hover-color: #cfcac4;       /* Buton Üzeri - Bej */
+    --primary-green: #6B8E23;     /* Koyu Zeytin Yeşili - Vurgu, Butonlar */
+    --secondary-green: #A2CD5A;   /* Açık Zeytin Yeşili - Menü Seçili */
+    --background-cream: #FDF5E6;  /* Krem Arka Plan */
+    --card-bg-color: #FFFFFF;     /* Kartlar ve Sidebar - Beyaz */
+    --text-dark: #36454F;         /* Koyu Antrasit - Ana Metin */
+    --text-light: #5A5A5A;        /* Gri - Alt Metinler */
+    --border-light: #E0E0E0;      /* İnce Sınırlar */
 }}
 
 /* --- GENEL SAYFA AYARLARI --- */
 .stApp {{
-    background-color: var(--secondary-color);
+    background-color: var(--background-cream); /* Tüm sayfa arka planı */
     font-family: 'Quicksand', sans-serif;
 }}
-[data-testid="stSidebar"] {{
-    background-color: var(--card-bg-color);
-    border-right: 1px solid #EAEAEA;
-}}
-h1 {{
-    font-family: 'Dancing Script', cursive !important;
-    color: var(--text-color) !important;
-    text-align: center;
-}}
-h2, h5 {{
-    font-family: 'Quicksand', sans-serif !important;
-    color: var(--text-color) !important;
-    font-weight: 700;
-}}
-/* Butonlar ve seçili menü elemanı ana renkte olacak */
-.stButton>button, .st-emotion-cache-19rxjzo {{
-    background-color: var(--primary-color) !important;
-    color: white !important;
-    border: none !important;
-}}
-.stButton>button:hover {{
-    background-color: var(--subtle-color) !important;
-    color: white !important;
+
+/* Streamlit'in varsayılan üst boşluğunu kaldırarak header'ı en üste yapıştırıyoruz */
+div[data-testid="stAppViewContainer"] > .main {{
+    padding-top: 0rem;
 }}
 
-/* --- ANA SAYFA KARTLARI (RESİM DÜZELTMESİYLE) --- */
+/* --- HEADER TASARIMI --- */
+header {{
+    background-image: linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(0,0,0,0.1)),
+                      url("https://plus.unsplash.com/premium_photo-1663099777846-62e0c092ce0b?q=80&w=1349&auto=format&fit=crop");
+    background-size: cover;
+    background-position: center 35%; /* Resmin dikey konumunu ayarla */
+    padding: 3rem 1rem; /* İç boşluğu artırarak daha ferah bir görünüm */
+    border-bottom: 2px solid var(--primary-green);
+    text-align: center;
+    margin-bottom: 2rem;
+}}
+
+header h1 {{
+    font-family: 'Dancing Script', cursive !important;
+    color: var(--card-bg-color) !important; /* Beyaz renk, resim üzerinde daha iyi durur */
+    font-size: 4.5rem; /* Başlığı daha da büyüttük */
+    text-shadow: 2px 2px 5px rgba(0,0,0,0.6);
+    margin: 0;
+}}
+
+/* Streamlit'in ana başlığını gizle, bizim header'ımız görünsün */
+div[data-testid="stHeading"] {{
+    display: none;
+}}
+
+/* --- SİDEBAR --- */
+div[data-testid="stSidebar"] {{
+    background-color: var(--card-bg-color); /* Sidebar da beyaz oldu */
+    border-right: 1px solid var(--border-light);
+    box-shadow: 2px 0 10px rgba(0,0,0,0.05); /* Hafif gölge ekledik */
+}}
+
+/* --- ANA MENÜ (Tüm Tarifler, Favorilerim vb.) --- */
+nav.st-emotion-cache-19rxjzo {{ /* Bu selector menünün ana konteynerini hedefler */
+    background-color: var(--card-bg-color); /* Menü arka planı beyaz */
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    margin-bottom: 2rem;
+    padding: 0.5rem; /* İç boşluk ekledik */
+    border: 1px solid var(--border-light);
+}}
+.st-emotion-cache-1nm7f8b {{ /* Seçili menü öğesinin ana div'i */
+    background-color: var(--secondary-green) !important; /* Seçili menü öğesi yeşil */
+    border-radius: 8px;
+    color: white !important;
+}}
+.st-emotion-cache-1nm7f8b p {{ /* Seçili menü öğesinin metni */
+    color: white !important;
+    font-weight: 600;
+}}
+.st-emotion-cache-1nm7f8b:hover {{
+    background-color: var(--primary-green) !important; /* Hover rengi daha koyu yeşil */
+}}
+.st-emotion-cache-pkpr8m p {{ /* Diğer menü öğelerinin metinleri */
+    color: var(--text-dark) !important;
+}}
+.st-emotion-cache-pkpr8m:hover {{
+    background-color: var(--border-light) !important; /* Hover rengi açık gri */
+    border-radius: 8px;
+}}
+
+
+/* --- KARTLAR --- */
 .recipe-card-link {{ text-decoration: none; }}
 .recipe-card {{
     background-color: var(--card-bg-color) !important;
-    border-radius: 12px; border: 1px solid #EAEAEA;
+    border-radius: 12px; border: 1px solid var(--border-light);
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     margin-bottom: 1.5rem; overflow: hidden;
     transition: all 0.3s ease; height: 420px;
@@ -75,31 +119,81 @@ h2, h5 {{
 .card-image {{ 
     width: 100%; 
     height: 300px; 
-    object-fit: cover; /* RESMİN BOZULMASINI ENGELLEYEN SİHİRLİ KOD */
+    object-fit: cover;
     display: block; 
     flex-shrink: 0; 
 }}
 .card-body {{ padding: 1rem; flex-grow: 1; display: flex; flex-direction: column; }}
 .card-body h3 {{
-    font-weight: 700; font-size: 1.1rem; color: var(--text-color) !important; margin: 0 0 0.5rem 0;
-    line-height: 1.3; height: 2.6em; /* 2 satır */
+    font-weight: 700; font-size: 1.1rem; color: var(--text-dark) !important; margin: 0 0 0.5rem 0;
+    line-height: 1.3; height: 2.6em;
     overflow: hidden; text-overflow: ellipsis; display: -webkit-box;
     -webkit-line-clamp: 2; -webkit-box-orient: vertical;
 }}
 .card-metadata {{
     display: flex; flex-direction: row; justify-content: space-between;
-    align-items: center; font-size: 0.8rem; color: #777;
-    margin-top: auto; padding-top: 0.5rem; border-top: 1px solid #F0F0F0;
+    align-items: center; font-size: 0.8rem; color: var(--text-light);
+    margin-top: auto; padding-top: 0.5rem; border-top: 1px solid var(--border-light);
 }}
 .card-metadata span {{ display: flex; align-items: center; gap: 5px; }}
-.card-metadata svg {{ width: 14px; height: 14px; fill: var(--subtle-color); }}
+.card-metadata svg {{ width: 14px; height: 14px; fill: var(--text-light); }}
+
+/* --- BUTONLAR --- */
+.stButton > button {{
+    background-color: var(--primary-green);
+    color: white;
+    border-radius: 8px;
+    border: none;
+    padding: 0.7rem 1.2rem;
+    font-weight: 600;
+    transition: background-color 0.2s ease;
+}}
+.stButton > button:hover {{
+    background-color: var(--secondary-green);
+}}
+.stButton > button:active {{
+    background-color: var(--primary-green);
+}}
+
+/* --- TEXT INPUT / SELECTBOX / SLIDER VB. GİBİ FORUM ELEMENTLERİ --- */
+.stTextInput>div>div>input, .stSelectbox>div>div, .stTextArea>div>div>textarea, .stNumberInput>div>div>input {{
+    background-color: var(--card-bg-color);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: 0.5rem;
+    color: var(--text-dark);
+}}
+.st-emotion-cache-1g0hp8h {{ /* Slider track rengi */
+    background-color: var(--secondary-green);
+}}
+.st-emotion-cache-1g0hp8h > div[data-testid="stThumbValue"] {{ /* Slider thumb rengi */
+    background-color: var(--primary-green);
+    border: 2px solid var(--card-bg-color);
+}}
+label {{
+    color: var(--text-dark);
+    font-weight: 500;
+}}
 
 /* --- DETAY SAYFASI --- */
-.detail-page-title {{ font-family: 'Dancing Script', cursive !important; font-size: 3.5rem; text-align: center; margin-bottom: 1rem; color: var(--text-color); }}
-.detail-card {{ padding: 1.5rem; height: 100%; background-color: var(--card-bg-color); border-radius: 12px; border: 1px solid #EAEAEA; }}
+.detail-page-title {{ font-family: 'Dancing Script', cursive !important; font-size: 3.5rem; text-align: center; margin-bottom: 1rem; color: var(--text-dark); }}
+.detail-card {{ padding: 1.5rem; height: 100%; background-color: var(--card-bg-color); border-radius: 12px; border: 1px solid var(--border-light); }}
 .detail-card img {{ width: 100%; border-radius: 8px; object-fit: cover; height: 450px; }}
-.detail-card h5 {{ border-bottom: 2px solid #F0F0F0; padding-bottom: 8px; margin-top: 0; }}
-.detail-card-text {{ white-space: pre-wrap; font-size: 0.9rem; line-height: 1.7; }}
+.detail-card h5 {{ border-bottom: 2px solid var(--border-light); padding-bottom: 8px; margin-top: 0; color: var(--text-dark); }}
+.detail-card-text {{ white-space: pre-wrap; font-size: 0.9rem; line-height: 1.7; color: var(--text-dark); }}
+
+/* --- YAPAY ZEKA KUTUSU --- */
+.ai-response {{
+    background-color: #E6FFE6; /* Çok açık yeşil */
+    border-left: 5px solid var(--primary-green);
+    padding: 1rem;
+    border-radius: 8px;
+    white-space: pre-wrap;
+    font-family: 'Quicksand', sans-serif;
+    line-height: 1.7;
+    color: var(--text-dark);
+}}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -257,11 +351,15 @@ def show_recipe_detail(recipe_id, df):
     with col3:
         st.markdown(f"""<div class="detail-card"><h5>Yapılışı</h5><div class="detail-card-text">{recipe.get('yapilisi', 'Eklenmemiş')}</div></div>""", unsafe_allow_html=True)
 
-# --- ANA SAYFA GÖRÜNÜMÜ ---
-# --- GÜNCELLENMİŞ ANA SAYFA FONKSİYONU ---
+# --- GÜNCELLENMİŞ ANA SAYFA FONKSİYONU (HEADER DEĞİŞİKLİĞİ) ---
 def show_main_page():
     # YENİ: Header'ı sayfanın en başında, menüden önce oluşturuyoruz
-    st.markdown("<header><h1> Ceren'in Defteri </h1></header>", unsafe_allow_html=True)
+    # Başlık artık doğrudan header'ın içinde.
+    st.markdown("""
+        <header>
+            <h1>🌸 Ceren'in Defteri 🌸</h1>
+        </header>
+    """, unsafe_allow_html=True)
     
     all_recipes_df = fetch_all_recipes()
     
@@ -322,7 +420,6 @@ def show_main_page():
              st.info("Sonuçları görmek için yukarıdan malzeme seçin ve bir butona basın.")
 
     elif selected_page == "Yeni Tarif Ekle":
-        # ... (Bu kısım aynı, değişiklik yok)
         st.markdown("<h2>Yeni Bir Tarif Ekle</h2>", unsafe_allow_html=True)
         with st.form("new_recipe_page_form", clear_on_submit=True):
             col1, col2 = st.columns(2)
