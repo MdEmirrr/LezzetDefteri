@@ -164,12 +164,15 @@ def display_recipe_cards_final(df):
                 </div>
             </a>""", unsafe_allow_html=True)
 
-@st.experimental_dialog("Alışveriş Listesi")
+# --- ALIŞVERİŞ LİSTESİ FONKSİYONU (GÜNCELLENDİ) ---
+@st.dialog("Alışveriş Listesi")
 def show_shopping_list(recipe):
     st.markdown(f"### {recipe['baslik']} için Malzemeler")
     st.markdown("---")
     malzemeler_text = recipe.get('malzemeler', 'Malzeme listesi boş.')
-    st.code(malzemeler_text)
+    # Malzemeleri daha okunaklı yapmak için her satırın başına "-" ekleyelim
+    formatted_malzemeler = "\n".join([f"- {line.strip()}" for line in malzemeler_text.split('\n') if line.strip()])
+    st.code(formatted_malzemeler)
     st.info("Yukarıdaki kutucuğun sağ üst köşesindeki butonu kullanarak listeyi kopyalayabilirsiniz.")
 
 def show_recipe_detail(recipe_id, df):
