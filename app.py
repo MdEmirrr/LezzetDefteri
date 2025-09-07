@@ -252,6 +252,7 @@ def show_recipe_detail(recipe_id, df):
         st.markdown(f"""<div class="detail-card"><h5>Yapılışı</h5><div class="detail-card-text">{recipe.get('yapilisi', 'Eklenmemiş')}</div></div>""", unsafe_allow_html=True)
 
 # --- ANA SAYFA GÖRÜNÜMÜ ---
+# --- "NE PİŞİRSEM?" SAYFASININ DÜZELTİLMİŞ HALİ ---
 def show_main_page():
     # Yeni Header
     st.markdown("<header><h1>🌸 Ceren'in Defteri 🌸</h1></header>", unsafe_allow_html=True)
@@ -288,7 +289,6 @@ def show_main_page():
                                 selected_ingredients.append(ingredient)
         st.write("---")
         
-        # Filtreleme ve AI butonları
         col1, col2 = st.columns(2)
         with col1:
             find_recipe_button = st.button("🧑‍🍳 Bu Malzemelerle Tarif Bul", use_container_width=True)
@@ -306,13 +306,21 @@ def show_main_page():
                 ai_response = generate_recipe_with_ai(selected_ingredients)
                 if ai_response:
                     st.markdown("### 🤖 Yapay Zeka Şefin Önerisi")
-                    st.markdown(st.write_stream(ai_response), unsafe_allow_html=True)
-        
-        if not selected_ingredients:
-            st.info("Sonuçları görmek için yukarıdan malzeme seçin ve bir butona basın.")
+                    
+                    # --- DEĞİŞİKLİK BURADA ---
+                    # Eski hatalı kod: st.markdown(st.write_stream(ai_response), unsafe_allow_html=True)
+                    # YENİ DOĞRU KOD:
+                    # Gelen her bir parçanın (chunk) içindeki metni (.text) alıp yazdırıyoruz.
+                    st.write_stream(chunk.text for chunk in ai_response)
+                    # -------------------------
+
+        if not selected_ingredients and (find_recipe_button or ai_recipe_button):
+             st.warning("Lütfen önce en az bir malzeme seçin.")
+        elif not selected_ingredients:
+             st.info("Sonuçları görmek için yukarıdan malzeme seçin ve bir butona basın.")
+
 
     elif selected_page == "Yeni Tarif Ekle":
-        # ... (Bu kısım aynı, değişiklik yok)
         st.markdown("<h2>Yeni Bir Tarif Ekle</h2>", unsafe_allow_html=True)
         with st.form("new_recipe_page_form", clear_on_submit=True):
             col1, col2 = st.columns(2)
