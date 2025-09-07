@@ -10,7 +10,7 @@ from streamlit_option_menu import option_menu
 import json
 import re
 import time
-import random
+# import google.generativeai as genai # Yapay zeka kütüphanesini şimdilik yorum satırı yapalım
 
 # --- GÖRSEL AYARLAR VE STİL ---
 st.set_page_config(page_title="Ceren'in Defteri", layout="wide")
@@ -20,98 +20,211 @@ st.markdown(f"""
 @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');
 
-/* --- YEŞİL & KREM RENK PALETİ --- */
+/* --- YENİ PASTA YEŞİL & KREM PALETİ --- */
 :root {{
-    --primary-green: #9fc031;      /* Ana Yeşil */
-    --secondary-green: #a6a994;   /* Haki Yeşil - Hover & Seçili */
-    --background-cream: #fde4ce;  /* Arka Plan - Krem/Şeftali */
-    --card-bg-color: #FFFFFF;     /* Kartlar - Beyaz */
-    --text-color: #4a4a4a;        /* Koyu Metin Rengi */
-    --subtle-color: #cfcac4;      /* İnce Detaylar - Bej */
+    --primary-green: #8BC34A;     /* Canlı Pastel Yeşil - Butonlar, Vurgu */
+    --secondary-green: #A5D6A7;   /* Açık Pastel Yeşil - Sidebar, Hover */
+    --background-cream: #FFF8E1;  /* Krem Arka Plan */
+    --card-bg-color: #FFFFFF;     /* Kartlar ve Ana İçerik Alanı - Beyaz */
+    --text-dark: #36454F;         /* Koyu Antrasit - Ana Metin */
+    --text-light: #6A7B8E;        /* Gri Mavi - Alt Metinler */
+    --border-light: #E0E0E0;      /* İnce Sınırlar */
+    --button-hover: #7CB342;      /* Buton Hover - Daha Koyu Yeşil */
 }}
 
 /* --- GENEL SAYFA AYARLARI --- */
 .stApp {{
-    background-color: var(--background-cream);
+    background-color: var(--background-cream); /* Tüm sayfa arka planı */
     font-family: 'Quicksand', sans-serif;
 }}
+
 /* Streamlit'in varsayılan üst boşluğunu kaldırıyoruz */
 div[data-testid="stAppViewContainer"] > .main {{
     padding-top: 0rem;
 }}
 
-/* --- HEADER --- */
+/* --- HEADER (RESİMLİ HEADER GERİ GELDİ) --- */
 header {{
-    background-color: var(--card-bg-color);
-    padding: 1rem;
+    background-image: linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(0,0,0,0.1)),
+                      url("https://plus.unsplash.com/premium_photo-1663099777846-62e0c092ce0b?q=80&w=1349&auto=format&fit=crop");
+    background-size: cover;
+    background-position: center 35%; /* Resmin dikey konumunu ayarla */
+    padding: 3rem 1rem; /* İç boşluğu artırarak daha ferah bir görünüm */
     border-bottom: 2px solid var(--primary-green);
+    text-align: center;
+    margin-bottom: 2rem;
 }}
+
 header h1 {{
     font-family: 'Dancing Script', cursive !important;
-    color: var(--text-color) !important;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    color: var(--card-bg-color) !important; /* Başlık beyaz, resim üzerinde daha iyi durur */
+    font-size: 4.5rem; /* Başlığı daha da büyüttük */
+    text-shadow: 2px 2px 5px rgba(0,0,0,0.6);
     margin: 0;
-    text-align: center;
 }}
-div[data-testid="stHeading"] {{ display: none; }}
 
-/* --- SOL MENÜ (SIDEBAR) --- */
-[data-testid="stSidebar"] {{
-    background-color: var(--primary-green) !important; /* Sidebar yeşil oldu */
+/* Streamlit'in ana başlığını gizle, bizim header'ımız görünsün */
+div[data-testid="stHeading"] {{
+    display: none;
+}}
+
+/* --- SİDEBAR (SOL FİLTRE MENÜSÜ) --- */
+div[data-testid="stSidebar"] {{
+    background-color: var(--secondary-green) !important; /* Pastel yeşil sidebar */
     border-right: 1px solid var(--primary-green);
+    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
 }}
-[data-testid="stSidebar"] h2, [data-testid="stSidebar"] label {{
-    color: white !important; /* Sidebar içindeki yazılar beyaz oldu */
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+div[data-testid="stSidebar"] h2, div[data-testid="stSidebar"] label, div[data-testid="stSidebar"] p {{
+    color: var(--text-dark) !important; /* Sidebar içindeki yazılar koyu metin rengi */
+    text-shadow: none; /* Gölgeyi kaldırdık */
 }}
-[data-testid="stSidebar"] .stMultiSelect>div>div, [data-testid="stSidebar"] .stSlider>div {{
-    background-color: rgba(255,255,255,0.2);
-    border: none;
+div[data-testid="stSidebar"] .stMultiSelect>div>div, div[data-testid="stSidebar"] .stSlider>div, div[data-testid="stSidebar"] .stTextInput>div>div>input {{
+    background-color: rgba(255,255,255,0.7) !important; /* Açık beyaz arkaplan */
+    border: 1px solid var(--primary-green);
+    color: var(--text-dark) !important;
 }}
-[data-testid="stSidebar"] .st-emotion-cache-1g0hp8h {{
-    background-color: var(--secondary-green);
+div[data-testid="stSidebar"] .st-emotion-cache-1g0hp8h {{ /* Slider track */
+    background-color: var(--primary-green) !important;
 }}
+div[data-testid="stSidebar"] .st-emotion-cache-1g0hp8h > div[data-testid="stThumbValue"] {{ /* Slider thumb */
+    background-color: var(--primary-green) !important;
+    border: 2px solid var(--card-bg-color);
+}}
+div[data-testid="stSidebar"] .st-emotion-cache-nahz7x p {{ /* multiselect seçili item text */
+    color: var(--text-dark) !important;
+}}
+
 
 /* --- ÜST NAVİGASYON MENÜSÜ --- */
-nav.st-emotion-cache-19rxjzo {{
-    background-color: var(--card-bg-color);
+nav.st-emotion-cache-19rxjzo {{ /* Bu selector menünün ana konteynerini hedefler */
+    background-color: var(--card-bg-color); /* Menü arka planı beyaz */
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     margin: 0 auto 2rem auto;
     padding: 0.5rem;
     width: fit-content;
+    border: 1px solid var(--border-light);
+}}
+/* Seçili menü öğesi */
+.st-emotion-cache-1nm7f8b {{ 
+    background-color: var(--primary-green) !important; /* Seçili menü öğesi ana yeşil */
+    border-radius: 8px;
+    color: white !important;
+}}
+.st-emotion-cache-1nm7f8b p {{ /* Seçili menü öğesinin metni */
+    color: white !important;
+    font-weight: 600;
+}}
+.st-emotion-cache-1nm7f8b:hover {{
+    background-color: var(--button-hover) !important; /* Hover rengi daha koyu yeşil */
+}}
+/* Diğer menü öğeleri */
+.st-emotion-cache-pkpr8m p {{ 
+    color: var(--text-dark) !important;
+}}
+.st-emotion-cache-pkpr8m:hover {{
+    background-color: var(--border-light) !important; /* Hover rengi açık gri */
+    border-radius: 8px;
 }}
 
-/* --- KARTLAR (Aynı) --- */
-.recipe-card-link {{ text-decoration: none; }}
-.recipe-card {{ background-color: var(--card-bg-color) !important; border-radius: 12px; border: 1px solid #EAEAEA; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 1.5rem; overflow: hidden; transition: all 0.3s ease; height: 420px; display: flex; flex-direction: column; }}
-.recipe-card:hover {{ transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }}
-.card-image {{ width: 100%; height: 300px; object-fit: cover; display: block; flex-shrink: 0; }}
-.card-body {{ padding: 1rem; flex-grow: 1; display: flex; flex-direction: column; }}
-.card-body h3 {{ font-weight: 700; font-size: 1.1rem; color: var(--text-color) !important; margin: 0 0 0.5rem 0; line-height: 1.3; height: 2.6em; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }}
-.card-metadata {{ display: flex; flex-direction: row; justify-content: space-between; align-items: center; font-size: 0.8rem; color: #777; margin-top: auto; padding-top: 0.5rem; border-top: 1px solid #F0F0F0; }}
-.card-metadata span {{ display: flex; align-items: center; gap: 5px; }}
-.card-metadata svg {{ width: 14px; height: 14px; fill: var(--subtle-color); }}
 
-/* --- DETAY SAYFASI (Aynı) --- */
-.detail-page-title {{ font-family: 'Dancing Script', cursive !important; font-size: 3.5rem; text-align: center; margin-bottom: 1rem; color: var(--text-color); }}
-.detail-card {{ padding: 1.5rem; height: 100%; background-color: var(--card-bg-color); border-radius: 12px; border: 1px solid #EAEAEA; }}
+/* --- KARTLAR --- */
+.recipe-card-link {{ text-decoration: none; }}
+.recipe-card {{ 
+    background-color: var(--card-bg-color) !important; 
+    border-radius: 12px; border: 1px solid var(--border-light); 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
+    margin-bottom: 1.5rem; overflow: hidden; 
+    transition: all 0.3s ease; height: 420px; 
+    display: flex; flex-direction: column; 
+}}
+.recipe-card:hover {{ transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }}
+.card-image {{ 
+    width: 100%; 
+    height: 300px; 
+    object-fit: cover; /* Resmin bozulmasını engeller */
+    display: block; 
+    flex-shrink: 0; 
+}}
+.card-body {{ padding: 1rem; flex-grow: 1; display: flex; flex-direction: column; }}
+.card-body h3 {{ 
+    font-weight: 700; font-size: 1.1rem; color: var(--text-dark) !important; margin: 0 0 0.5rem 0; 
+    line-height: 1.3; height: 2.6em; /* 2 satır */
+    overflow: hidden; text-overflow: ellipsis; display: -webkit-box; 
+    -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}}
+.card-metadata {{ 
+    display: flex; flex-direction: row; justify-content: space-between; 
+    align-items: center; font-size: 0.8rem; color: var(--text-light); 
+    margin-top: auto; padding-top: 0.5rem; border-top: 1px solid var(--border-light);
+}}
+.card-metadata span {{ display: flex; align-items: center; gap: 5px; }}
+.card-metadata svg {{ width: 14px; height: 14px; fill: var(--text-light); }}
+
+/* --- BUTONLAR --- */
+.stButton > button {{
+    background-color: var(--primary-green); /* Daha canlı yeşil */
+    color: white;
+    border-radius: 8px;
+    border: none;
+    padding: 0.7rem 1.2rem;
+    font-weight: 600;
+    transition: background-color 0.2s ease;
+}}
+.stButton > button:hover {{
+    background-color: var(--button-hover); /* Hover rengi bir tık daha koyu */
+}}
+.stButton > button:active {{
+    background-color: var(--primary-green);
+}}
+/* AI butonu için özel stil (eğer type="primary" ise) */
+.stButton [data-testid="stFormSubmitButton"] > button {{ /* Sadece form içindeki primary submit butonları için */
+    background-color: var(--primary-green) !important;
+    color: white !important;
+}}
+.stButton [data-testid="stFormSubmitButton"] > button:hover {{
+    background-color: var(--button-hover) !important;
+}}
+
+
+/* --- FORM ELEMENTLERİ --- */
+.stTextInput>div>div>input, .stSelectbox>div>div, .stTextArea>div>div>textarea, .stNumberInput>div>div>input {{
+    background-color: var(--card-bg-color);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: 0.5rem;
+    color: var(--text-dark);
+}}
+label {{
+    color: var(--text-dark);
+    font-weight: 500;
+}}
+
+/* --- DETAY SAYFASI --- */
+.detail-page-title {{ font-family: 'Dancing Script', cursive !important; font-size: 3.5rem; text-align: center; margin-bottom: 1rem; color: var(--text-dark); }}
+.detail-card {{ padding: 1.5rem; height: 100%; background-color: var(--card-bg-color); border-radius: 12px; border: 1px solid var(--border-light); }}
 .detail-card img {{ width: 100%; border-radius: 8px; object-fit: cover; height: 450px; }}
-.detail-card h5 {{ border-bottom: 2px solid #F0F0F0; padding-bottom: 8px; margin-top: 0; }}
-.detail-card-text {{ white-space: pre-wrap; font-size: 0.9rem; line-height: 1.7; }}
+.detail-card h5 {{ border-bottom: 2px solid var(--border-light); padding-bottom: 8px; margin-top: 0; color: var(--text-dark); }}
+.detail-card-text {{ white-space: pre-wrap; font-size: 0.9rem; line-height: 1.7; color: var(--text-dark); }}
+
+/* --- YAPAY ZEKA KUTUSU --- */
+.ai-response {{
+    background-color: #E6FFE6; /* Çok açık yeşil */
+    border-left: 5px solid var(--primary-green);
+    padding: 1rem;
+    border-radius: 8px;
+    white-space: pre-wrap;
+    font-family: 'Quicksand', sans-serif;
+    line-height: 1.7;
+    color: var(--text-dark);
+}}
+
 </style>
 """, unsafe_allow_html=True)
 
-# ... (Diğer sabitler ve veritabanı bağlantısı aynı) ...
-CATEGORIZED_INGREDIENTS = {
-    "Süt & Süt Ürünleri 🥛": ["Süt", "Yoğurt", "Peynir", "Kaşar peyniri", "Krema", "Tereyağı", "Yumurta"],
-    "Et, Tavuk & Balık 🥩": ["Kıyma", "Kuşbaşı et", "Tavuk", "Sucuk", "Balık"],
-    "Sebzeler 🥕": ["Soğan", "Sarımsak", "Domates", "Biber", "Patates", "Havuç", "Patlıcan", "Kabak", "Ispanak", "Marul", "Salatalık", "Limon", "Mantar"],
-    "Bakliyat & Tahıl 🍚": ["Un", "Pirinç", "Bulgur", "Makarna", "Mercimek", "Nohut", "Fasulye", "Maya"],
-    "Temel Gıdalar & Soslar 🧂": ["Şeker", "Tuz", "Sıvı yağ", "Zeytinyağı", "Salça", "Sirke"],
-    "Kuruyemiş & Tatlı 🍫": ["Ceviz", "Fındık", "Badem", "Çikolata", "Kakao", "Bal"],
-    "Baharatlar 🌿": ["Karabiber", "Nane", "Kekik", "Pul biber", "Kimyon", "Toz biber"]
-}
+
+# --- GOOGLE SHEETS BAĞLANTISI ---
+# ... (Aynı kalacak)
 try:
     scopes = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
     creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=scopes)
@@ -124,6 +237,16 @@ except Exception as e:
 
 # --- YARDIMCI FONKSİYONLAR ---
 # ... (fetch_all_recipes, get_instagram_thumbnail, build_sidebar, display_recipe_cards_final aynı kalıyor)
+CATEGORIZED_INGREDIENTS = {
+    "Süt & Süt Ürünleri 🥛": ["Süt", "Yoğurt", "Peynir", "Kaşar peyniri", "Krema", "Tereyağı", "Yumurta"],
+    "Et, Tavuk & Balık 🥩": ["Kıyma", "Kuşbaşı et", "Tavuk", "Sucuk", "Balık"],
+    "Sebzeler 🥕": ["Soğan", "Sarımsak", "Domates", "Biber", "Patates", "Havuç", "Patlıcan", "Kabak", "Ispanak", "Marul", "Salatalık", "Limon", "Mantar"],
+    "Bakliyat & Tahıl 🍚": ["Un", "Pirinç", "Bulgur", "Makarna", "Mercimek", "Nohut", "Fasulye", "Maya"],
+    "Temel Gıdalar & Soslar 🧂": ["Şeker", "Tuz", "Sıvı yağ", "Zeytinyağı", "Salça", "Sirke"],
+    "Kuruyemiş & Tatlı 🍫": ["Ceviz", "Fındık", "Badem", "Çikolata", "Kakao", "Bal"],
+    "Baharatlar 🌿": ["Karabiber", "Nane", "Kekik", "Pul biber", "Kimyon", "Toz biber"]
+}
+
 @st.cache_data(ttl=600)
 def fetch_all_recipes():
     records = worksheet.get_all_records()
@@ -194,26 +317,30 @@ def display_recipe_cards_final(df):
                 </div>
             </a>""", unsafe_allow_html=True)
 
-# --- GÜNCELLENMİŞ DETAY SAYFASI ---
+
+# --- TARİF DETAY SAYFASI ---
 def show_recipe_detail(recipe_id, df):
     recipe_df = df[df['id'].astype(str) == str(recipe_id)]
-    if recipe_df.empty: st.error("Aradığınız tarif bulunamadı."); st.stop()
+    if recipe_df.empty:
+        st.error("Aradığınız tarif bulunamadı."); st.stop()
     recipe = recipe_df.iloc[0]
-    
-    # YENİ: Butonlar için sütunlar
+
+    # Butonlar için sütunlar
     col_b1, col_b2, col_b3, col_b4 = st.columns([2, 2, 2, 6])
     with col_b1:
-        if st.button("⬅️ Geri"):
+        if st.button("⬅️ Geri", key="back_button_detail"):
             st.query_params.clear(); st.rerun()
     with col_b2:
         is_favorite = recipe.get('favori') == 'EVET'
         fav_text = "⭐ Favoriden Çıkar" if is_favorite else "⭐ Favorilere Ekle"
-        if st.button(fav_text):
-            cell = worksheet.find(str(recipe['id'])); favori_col_index = worksheet.row_values(1).index('favori') + 1
-            new_status = "HAYIR" if is_favorite else "EVET"; worksheet.update_cell(cell.row, favori_col_index, new_status)
+        if st.button(fav_text, key="favorite_button_detail"):
+            cell = worksheet.find(str(recipe['id']))
+            favori_col_index = worksheet.row_values(1).index('favori') + 1
+            new_status = "HAYIR" if is_favorite else "EVET"
+            worksheet.update_cell(cell.row, favori_col_index, new_status)
             st.cache_data.clear(); st.rerun()
     with col_b3:
-        if st.button("✏️ Düzenle"):
+        if st.button("✏️ Düzenle", key="edit_button_detail"):
             st.session_state.recipe_to_edit_id = recipe['id']
             st.query_params.clear(); st.rerun()
 
@@ -232,7 +359,7 @@ def show_recipe_detail(recipe_id, df):
     st.markdown("---")
     with st.expander("🔴 Tarifi Kalıcı Olarak Sil"):
         st.warning("Bu işlem geri alınamaz. Tarifi silmek istediğinizden emin misiniz?")
-        if st.button("Evet, Bu Tarifi Sil", type="primary"):
+        if st.button("Evet, Bu Tarifi Sil", type="primary", key="delete_confirm_button"):
             cell = worksheet.find(str(recipe['id']))
             worksheet.delete_rows(cell.row)
             st.cache_data.clear()
@@ -241,36 +368,56 @@ def show_recipe_detail(recipe_id, df):
             st.query_params.clear()
             st.rerun()
 
-# --- YENİ: DÜZENLEME FORMU SAYFASI ---
+# --- DÜZENLEME FORMU SAYFASI ---
 def show_edit_form(recipe_id, df):
     recipe_df = df[df['id'].astype(str) == str(recipe_id)]
-    if recipe_df.empty: st.error("Düzenlenecek tarif bulunamadı."); st.stop()
+    if recipe_df.empty:
+        st.error("Düzenlenecek tarif bulunamadı."); st.stop()
     recipe = recipe_df.iloc[0].to_dict()
 
     st.markdown(f"<h2>✏️ Tarifi Düzenle: *{recipe['baslik']}*</h2>", unsafe_allow_html=True)
     with st.form("edit_recipe_form"):
         # Form elemanları...
         edit_baslik = st.text_input("Tarif Başlığı", value=recipe['baslik'])
+        edit_insta_url = st.text_input("Instagram Reel Linki", value=recipe['instagram_reel_link'])
+        
         kategori_options = sorted(df['kategori'].unique())
         kategori_index = kategori_options.index(recipe['kategori']) if recipe['kategori'] in kategori_options else 0
         edit_kategori = st.selectbox("Kategori", options=kategori_options, index=kategori_index)
+        
         edit_yemek_zorlugu = st.selectbox("Yemek Zorluğu", options=["Basit", "Orta", "Zor"], index=["Basit", "Orta", "Zor"].index(recipe['yemek_zorlugu']))
         edit_hazirlanma_suresi = st.number_input("Hazırlanma Süresi (dakika)", min_value=1, step=5, value=recipe['hazirlanma_suresi'])
-        edit_malzemeler = st.text_area("Malzemeler", value=recipe.get('malzemeler', ''), height=200)
-        edit_yapilisi = st.text_area("Yapılışı", value=recipe.get('yapilisi', ''), height=200)
+        
+        edit_malzemeler = st.text_area("Malzemeler (Her satıra bir tane)", value=recipe.get('malzemeler', ''), height=200)
+        edit_yapilisi = st.text_area("Yapılışı (Açıklama)", value=recipe.get('yapilisi', ''), height=200)
 
         submitted_edit = st.form_submit_button("💾 Değişiklikleri Kaydet")
         if submitted_edit:
             try:
                 cell = worksheet.find(str(recipe['id']))
-                # Sütun isimlerine göre güncelleme yapalım
                 header = worksheet.row_values(1)
-                worksheet.update_cell(cell.row, header.index('baslik') + 1, edit_baslik)
-                worksheet.update_cell(cell.row, header.index('kategori') + 1, edit_kategori)
-                worksheet.update_cell(cell.row, header.index('yemek_zorlugu') + 1, edit_yemek_zorlugu)
-                worksheet.update_cell(cell.row, header.index('hazirlanma_suresi') + 1, edit_hazirlanma_suresi)
-                worksheet.update_cell(cell.row, header.index('malzemeler') + 1, edit_malzemeler)
-                worksheet.update_cell(cell.row, header.index('yapilisi') + 1, edit_yapilisi)
+                
+                # Sadece değişen alanları güncelle
+                if edit_baslik != recipe['baslik']:
+                    worksheet.update_cell(cell.row, header.index('baslik') + 1, edit_baslik)
+                if edit_insta_url != recipe['instagram_reel_link']:
+                    worksheet.update_cell(cell.row, header.index('instagram_reel_link') + 1, edit_insta_url)
+                    # Thumbnail URL'sini de güncelle
+                    new_thumbnail = get_instagram_thumbnail(edit_insta_url)
+                    if new_thumbnail:
+                        worksheet.update_cell(cell.row, header.index('thumbnail_url') + 1, new_thumbnail)
+                    else:
+                        st.warning("Yeni Instagram linkinden kapak fotoğrafı alınamadı, eski fotoğraf kaldı.")
+                if edit_kategori != recipe['kategori']:
+                    worksheet.update_cell(cell.row, header.index('kategori') + 1, edit_kategori)
+                if edit_yemek_zorlugu != recipe['yemek_zorlugu']:
+                    worksheet.update_cell(cell.row, header.index('yemek_zorlugu') + 1, edit_yemek_zorlugu)
+                if edit_hazirlanma_suresi != recipe['hazirlanma_suresi']:
+                    worksheet.update_cell(cell.row, header.index('hazirlanma_suresi') + 1, edit_hazirlanma_suresi)
+                if edit_malzemeler != recipe.get('malzemeler', ''):
+                    worksheet.update_cell(cell.row, header.index('malzemeler') + 1, edit_malzemeler)
+                if edit_yapilisi != recipe.get('yapilisi', ''):
+                    worksheet.update_cell(cell.row, header.index('yapilisi') + 1, edit_yapilisi)
                 
                 st.success("Tarif başarıyla güncellendi!")
                 st.cache_data.clear()
@@ -280,37 +427,45 @@ def show_edit_form(recipe_id, df):
             except Exception as e:
                 st.error(f"Güncelleme sırasında bir hata oluştu: {e}")
 
-    if st.button("İptal"):
+    if st.button("İptal", key="cancel_edit_button"):
         st.session_state.recipe_to_edit_id = None
         st.rerun()
 
 # --- ANA SAYFA GÖRÜNÜMÜ ---
 def show_main_page():
-    st.markdown("<header><h1>🌸 Ceren'in Defteri 🌸</h1></header>", unsafe_allow_html=True)
+    st.markdown("""
+        <header>
+            <h1>🌸 Ceren'in Defteri 🌸</h1>
+        </header>
+    """, unsafe_allow_html=True)
+    
     all_recipes_df = fetch_all_recipes()
+    
     selected_page = option_menu(
         menu_title=None, 
         options=["Tüm Tarifler", "⭐ Favorilerim", "Ne Pişirsem?", "Yeni Tarif Ekle"],
         icons=['card-list', 'star-fill', 'lightbulb', 'plus-circle'], 
         menu_icon="cast", default_index=0, orientation="horizontal",
-        styles={ # YENİ: Menü Stilleri
-            "container": {"background-color": "#FFFFFF", "border-radius": "12px", "box-shadow": "0 4px 12px rgba(0,0,0,0.05)", "padding": "0.5rem", "width": "fit-content", "margin": "0 auto 2rem auto"},
-            "nav-link": {"font-weight": "600", "color": "#4a4a4a"},
-            "nav-link-selected": {"background-color": "#a6a994", "color": "white"}
+        styles={
+            "container": {"background-color": "var(--card-bg-color)", "border-radius": "12px", "box-shadow": "0 4px 12px rgba(0,0,0,0.05)", "padding": "0.5rem", "width": "fit-content", "margin": "0 auto 2rem auto", "border": "1px solid var(--border-light)"},
+            "nav-link": {"font-weight": "600", "color": "var(--text-dark)"},
+            "nav-link-selected": {"background-color": "var(--primary-green)", "color": "white"}
         }
     )
-    # ... (Geri kalanı aynı)
+
     if selected_page == "Tüm Tarifler":
         filtered_recipes = build_sidebar(all_recipes_df)
         display_recipe_cards_final(filtered_recipes.sort_values(by='id', ascending=False))
+
     elif selected_page == "⭐ Favorilerim":
         st.markdown("<h2>⭐ Favori Tariflerim</h2>", unsafe_allow_html=True)
         favorites_df = all_recipes_df[all_recipes_df['favori'] == 'EVET']
         display_recipe_cards_final(favorites_df.sort_values(by='id', ascending=False))
+
     elif selected_page == "Ne Pişirsem?":
-        #... (Aynı)
         st.markdown("<h2>Ne Pişirsem?</h2>", unsafe_allow_html=True)
         ingredient_search = st.text_input("Malzeme Ara...", placeholder="Aradığın malzemeyi yazarak listeyi kısalt...")
+        
         selected_ingredients = []
         for category, ingredients in CATEGORIZED_INGREDIENTS.items():
             ingredients_to_show = [ing for ing in ingredients if ingredient_search.lower() in ing.lower()] if ingredient_search else ingredients
@@ -322,25 +477,44 @@ def show_main_page():
                             if st.checkbox(ingredient, key=f"ing_{ingredient}"):
                                 selected_ingredients.append(ingredient)
         st.write("---")
+        
         col1, col2 = st.columns(2)
         with col1:
-            find_recipe_button = st.button("🧑‍🍳 Bu Malzemelerle Tarif Bul", use_container_width=True)
+            find_recipe_button = st.button("🧑‍🍳 Bu Malzemelerle Tarif Bul", use_container_width=True, key="find_recipe_main")
         with col2:
-            ai_recipe_button = st.button("🤖 Yapay Zekadan Tarif İste!", use_container_width=True, type="primary")
+            # AI_ENABLED değişkenini burada tanımlamanız veya dışarıdan almanız gerekir
+            ai_enabled = False # Varsayılan olarak False, API anahtarınız varsa True yapın
+            if "GOOGLE_API_KEY" in st.secrets:
+                ai_enabled = True
+                # genai.configure(api_key=st.secrets["GOOGLE_API_KEY"]) # API anahtarını yapılandır
+            
+            ai_recipe_button = st.button("🤖 Yapay Zekadan Tarif İste!", use_container_width=True, type="primary", disabled=not ai_enabled, key="ai_recipe_main")
+
         if find_recipe_button and selected_ingredients:
             filtered_df = all_recipes_df.copy()
             for ingredient in selected_ingredients:
                 filtered_df = filtered_df[filtered_df['malzemeler'].str.contains(ingredient.lower(), case=False, na=False)]
             display_recipe_cards_final(filtered_df.sort_values(by='id', ascending=False))
+        
         if ai_recipe_button and selected_ingredients:
-            with st.spinner("Yapay zeka şefimiz sizin için özel bir tarif hazırlıyor..."):
-                ai_response = "Yapay zeka özelliği şu an aktif değil." # Örnek
-                st.markdown("### 🤖 Yapay Zeka Şefin Önerisi")
-                st.write(ai_response)
+            if ai_enabled:
+                with st.spinner("Yapay zeka şefimiz sizin için özel bir tarif hazırlıyor..."):
+                    # model = genai.GenerativeModel('gemini-1.5-flash')
+                    # prompt = f"""Kullanıcı şu malzemeleri seçti: {', '.join(selected_ingredients)}. Bu malzemelerle hazırlanabilecek, Ceren'in Defteri tarzında (samimi, kısa girişli, kolay anlaşılır, başlığında emoji olan) tek bir tarif önerisi oluştur. Tarifin adı ve açıklamasında "Ceren'in Defteri'nden" ibaresi olsun. Tarife "Malzemeler:" ve "Yapılışı:" başlıklarını ekle. Tarif sonunda "Ceren" imzası bulunsun. Örneğin: Ceren'in Defteri'nden: Fındıklı Çikolatalı Sütlü Mucize Kek
+                    # response = model.generate_content(prompt, stream=True)
+                    # st.markdown("### 🤖 Yapay Zeka Şefin Önerisi")
+                    # st.write_stream(chunk.text for chunk in response)
+                    st.info("Yapay zeka özelliği şuan kapalı.") # API anahtarınız varsa bu satırı silin
+            else:
+                st.warning("Yapay zeka özelliği devre dışı. Lütfen GOOGLE_API_KEY sırrını yapılandırın.")
+
         if not selected_ingredients and (find_recipe_button or ai_recipe_button):
              st.warning("Lütfen önce en az bir malzeme seçin.")
+        elif not selected_ingredients:
+             st.info("Sonuçları görmek için yukarıdan malzeme seçin ve bir butona basın.")
+
+
     elif selected_page == "Yeni Tarif Ekle":
-        # ... (Aynı)
         st.markdown("<h2>Yeni Bir Tarif Ekle</h2>", unsafe_allow_html=True)
         with st.form("new_recipe_page_form", clear_on_submit=True):
             col1, col2 = st.columns(2)
@@ -360,7 +534,7 @@ def show_main_page():
                     with st.spinner("İşleniyor..."):
                         thumbnail_url = get_instagram_thumbnail(insta_url)
                         if thumbnail_url:
-                            new_row = [datetime.now().strftime("%Y%m%d%H%M%S"), insta_url, tarif_basligi, yapilisi, malzemeler, kategori, datetime.now().strftime("%Y-%m-%d %H:%M%S"), thumbnail_url, yemek_zorlugu, hazirlanma_suresi, "HAYIR"]
+                            new_row = [datetime.now().strftime("%Y%m%d%H%M%S"), insta_url, tarif_basligi, yapilisi, malzemeler, kategori, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), thumbnail_url, yemek_zorlugu, hazirlanma_suresi, "HAYIR"]
                             worksheet.append_row(new_row, value_input_option='USER_ENTERED')
                             st.cache_data.clear()
                             st.success("Tarif başarıyla kaydedildi!")
