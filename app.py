@@ -232,20 +232,20 @@ label {{
 
 /* --- LİNK ALTI ÇİZGİLERİNİ KALDIRMA DÜZELTMESİ --- */
 /* Kartın ana linkinin alt çizgisini kaldırır ve rengini sıfırlar */
-a.recipe-card-link, a.recipe-card-link:hover {
+a.recipe-card-link, a.recipe-card-link:hover {{
     text-decoration: none !important;
     color: inherit;
-}
+}}
 
 /* Kart içindeki tüm metinlerin link rengi (mavi) almasını engeller */
-.recipe-card-link h3, .recipe-card-link b, .recipe-card-link span {
+.recipe-card-link h3, .recipe-card-link b, .recipe-card-link span {{
     color: inherit; /* Rengi üst elementten miras al, mavi olma! */
-}
+}}
 
 /* Metadata ikonlarının da altının çizilmesini engeller (ekstra güvenlik) */
-.recipe-card-link svg {
+.recipe-card-link svg {{
     text-decoration: none !important;
-}
+}}
             
 </style>
 """, unsafe_allow_html=True)
