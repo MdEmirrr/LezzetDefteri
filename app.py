@@ -102,11 +102,16 @@ except Exception as e:
     st.stop()
 
 # --- YARDIMCI FONKSİYONLAR ---
+# --- GÜNCELLENMİŞ VE DAHA AKILLI VERİ ÇEKME FONKSİYONU ---
 @st.cache_data(ttl=600)
 def fetch_all_recipes():
     records = worksheet.get_all_records()
     df = pd.DataFrame(records)
     if not df.empty:
+        # SÜTUN BAŞLIKLARINI TEMİZLEME ADIMI
+        # Bütün başlıkları küçük harfe çevirir ve boşlukları '_' ile değiştirir.
+        df.columns = [col.lower().replace(' ', '_') for col in df.columns]
+
         df = df[df['id'] != ''].copy()
         if 'hazirlanma_suresi' in df.columns:
             df['hazirlanma_suresi'] = pd.to_numeric(df['hazirlanma_suresi'], errors='coerce').fillna(0).astype(int)
