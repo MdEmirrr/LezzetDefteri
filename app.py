@@ -21,82 +21,85 @@ st.markdown(f"""
 @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');
 
-/* --- RENK PALETİ --- */
+/* --- YENİ YEŞİL RENK PALETİ --- */
 :root {{
-    --primary-color: #FFC0CB; /* Açık Pembe */
-    --secondary-color: #FFFFFF; /* Beyaz */
-    --accent-color: #FF69B4; /* Canlı Pembe */
-    --text-color: #333333; /* Koyu Gri */
-    --bg-color: #FFF0F5; /* Lavanta Pembesi */
+    --primary-color: #9fc031;      /* Ana Yeşil */
+    --secondary-color: #fde4ce;   /* Arka Plan - Krem/Şeftali */
+    --card-bg-color: #FFFFFF;     /* Kartlar - Beyaz */
+    --text-color: #4a4a4a;        /* Koyu Metin Rengi */
+    --subtle-color: #a6a994;      /* İnce Detaylar - Haki Yeşil */
+    --hover-color: #cfcac4;       /* Buton Üzeri - Bej */
 }}
 
 /* --- GENEL SAYFA AYARLARI --- */
 .stApp {{
-    background-color: var(--bg-color);
+    background-color: var(--secondary-color);
     font-family: 'Quicksand', sans-serif;
 }}
-
-/* Streamlit'in varsayılan üst boşluğunu kaldırarak header'ı en üste yapıştırıyoruz */
-div[data-testid="stAppViewContainer"] > .main {{
-    padding-top: 0rem;
+[data-testid="stSidebar"] {{
+    background-color: var(--card-bg-color);
+    border-right: 1px solid #EAEAEA;
 }}
-
-/* --- YENİ HEADER TASARIMI --- */
-header {{
-    background-image: linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(0,0,0,0.1)),
-                      url("https://plus.unsplash.com/premium_photo-1663099777846-62e0c092ce0b?q=80&w=1349&auto=format&fit=crop");
-    background-size: cover;
-    background-position: center 35%; /* Resmin dikey konumunu ayarla */
-    padding: 2.5rem 1rem; /* İç boşluğu artırarak daha ferah bir görünüm */
-    border-bottom: 2px solid var(--accent-color);
-    text-align: center;
-    margin-bottom: 2rem;
-}}
-
-header h1 {{
+h1 {{
     font-family: 'Dancing Script', cursive !important;
-    color: var(--secondary-color) !important;
-    font-size: 4rem; /* Başlığı büyüttük */
-    text-shadow: 2px 2px 5px rgba(0,0,0,0.5);
-    margin: 0;
+    color: var(--text-color) !important;
+    text-align: center;
+}}
+h2, h5 {{
+    font-family: 'Quicksand', sans-serif !important;
+    color: var(--text-color) !important;
+    font-weight: 700;
+}}
+/* Butonlar ve seçili menü elemanı ana renkte olacak */
+.stButton>button, .st-emotion-cache-19rxjzo {{
+    background-color: var(--primary-color) !important;
+    color: white !important;
+    border: none !important;
+}}
+.stButton>button:hover {{
+    background-color: var(--subtle-color) !important;
+    color: white !important;
 }}
 
-/* --- KART METADATA SIĞMA SORUNU DÜZELTMESİ --- */
+/* --- ANA SAYFA KARTLARI (RESİM DÜZELTMESİYLE) --- */
+.recipe-card-link {{ text-decoration: none; }}
 .recipe-card {{
-    height: 420px; /* Kartları biraz kısalttık */
+    background-color: var(--card-bg-color) !important;
+    border-radius: 12px; border: 1px solid #EAEAEA;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    margin-bottom: 1.5rem; overflow: hidden;
+    transition: all 0.3s ease; height: 420px;
+    display: flex; flex-direction: column;
 }}
-.card-image {{
-    height: 300px; /* Resim alanını ayarladık */
+.recipe-card:hover {{ transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }}
+.card-image {{ 
+    width: 100%; 
+    height: 300px; 
+    object-fit: cover; /* RESMİN BOZULMASINI ENGELLEYEN SİHİRLİ KOD */
+    display: block; 
+    flex-shrink: 0; 
 }}
+.card-body {{ padding: 1rem; flex-grow: 1; display: flex; flex-direction: column; }}
 .card-body h3 {{
-    font-size: 1rem; /* Başlık fontunu hafif küçülttük */
-    height: 2.6em; /* 2 satır */
+    font-weight: 700; font-size: 1.1rem; color: var(--text-color) !important; margin: 0 0 0.5rem 0;
+    line-height: 1.3; height: 2.6em; /* 2 satır */
+    overflow: hidden; text-overflow: ellipsis; display: -webkit-box;
+    -webkit-line-clamp: 2; -webkit-box-orient: vertical;
 }}
 .card-metadata {{
-    font-size: 0.75rem; /* Metadata fontunu hafif küçülttük */
-    padding-top: 0.4rem;
+    display: flex; flex-direction: row; justify-content: space-between;
+    align-items: center; font-size: 0.8rem; color: #777;
+    margin-top: auto; padding-top: 0.5rem; border-top: 1px solid #F0F0F0;
 }}
-.card-metadata svg {{
-    width: 12px;
-    height: 12px;
-}}
-
-
-/* --- DİĞER TÜM STİLLER (Aynı kalıyor) --- */
-h2, h5 {{ font-family: 'Quicksand', sans-serif !important; color: var(--text-color) !important; font-weight: 700; }}
-.recipe-card-link {{ text-decoration: none; }}
-.recipe-card {{ background-color: var(--secondary-color) !important; border-radius: 12px; border: 1px solid #EAEAEA; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 1.5rem; overflow: hidden; transition: all 0.3s ease; display: flex; flex-direction: column; }}
-.recipe-card:hover {{ transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }}
-.card-body {{ padding: 1rem; flex-grow: 1; display: flex; flex-direction: column; }}
-.card-metadata {{ display: flex; flex-direction: row; justify-content: space-between; align-items: center; color: #777; margin-top: auto; border-top: 1px solid #F0F0F0; }}
 .card-metadata span {{ display: flex; align-items: center; gap: 5px; }}
+.card-metadata svg {{ width: 14px; height: 14px; fill: var(--subtle-color); }}
+
+/* --- DETAY SAYFASI --- */
 .detail-page-title {{ font-family: 'Dancing Script', cursive !important; font-size: 3.5rem; text-align: center; margin-bottom: 1rem; color: var(--text-color); }}
-.detail-card {{ padding: 1.5rem; height: 100%; background-color: var(--secondary-color); border-radius: 12px; border: 1px solid #EAEAEA; }}
-.detail-card img {{ width: 100%; border-radius: 8px; }}
+.detail-card {{ padding: 1.5rem; height: 100%; background-color: var(--card-bg-color); border-radius: 12px; border: 1px solid #EAEAEA; }}
+.detail-card img {{ width: 100%; border-radius: 8px; object-fit: cover; height: 450px; }}
 .detail-card h5 {{ border-bottom: 2px solid #F0F0F0; padding-bottom: 8px; margin-top: 0; }}
 .detail-card-text {{ white-space: pre-wrap; font-size: 0.9rem; line-height: 1.7; }}
-.ai-response {{ background-color: #F0FFF0; border-left: 5px solid #2E8B57; padding: 1rem; border-radius: 8px; white-space: pre-wrap; font-family: 'Quicksand', sans-serif; line-height: 1.7; }}
-[data-testid="stSidebar"] {{ background-color: var(--secondary-color); border-right: 1px solid #EAEAEA; }}
 </style>
 """, unsafe_allow_html=True)
 
