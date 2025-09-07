@@ -36,10 +36,18 @@ st.markdown(f"""
     font-family: 'Quicksand', sans-serif;
 }}
 
+/* Streamlit'in varsayılan üst boşluğunu kaldırarak header'ı en üste yapıştırıyoruz */
+div[data-testid="stAppViewContainer"] > .main {{
+    padding-top: 0rem;
+}}
+
 /* --- YENİ HEADER TASARIMI --- */
 header {{
-    background-color: var(--primary-color);
-    padding: 1rem;
+    background-image: linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(0,0,0,0.1)),
+                      url("https://plus.unsplash.com/premium_photo-1663099777846-62e0c092ce0b?q=80&w=1349&auto=format&fit=crop");
+    background-size: cover;
+    background-position: center 35%; /* Resmin dikey konumunu ayarla */
+    padding: 2.5rem 1rem; /* İç boşluğu artırarak daha ferah bir görünüm */
     border-bottom: 2px solid var(--accent-color);
     text-align: center;
     margin-bottom: 2rem;
@@ -48,52 +56,47 @@ header {{
 header h1 {{
     font-family: 'Dancing Script', cursive !important;
     color: var(--secondary-color) !important;
-    text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+    font-size: 4rem; /* Başlığı büyüttük */
+    text-shadow: 2px 2px 5px rgba(0,0,0,0.5);
     margin: 0;
 }}
 
-/* Streamlit'in ana başlığını gizle, bizim header'ımız görünsün */
-div[data-testid="stHeading"] {{
-    display: none;
+/* --- KART METADATA SIĞMA SORUNU DÜZELTMESİ --- */
+.recipe-card {{
+    height: 420px; /* Kartları biraz kısalttık */
+}}
+.card-image {{
+    height: 300px; /* Resim alanını ayarladık */
+}}
+.card-body h3 {{
+    font-size: 1rem; /* Başlık fontunu hafif küçülttük */
+    height: 2.6em; /* 2 satır */
+}}
+.card-metadata {{
+    font-size: 0.75rem; /* Metadata fontunu hafif küçülttük */
+    padding-top: 0.4rem;
+}}
+.card-metadata svg {{
+    width: 12px;
+    height: 12px;
 }}
 
-/* --- KARTLAR VE DİĞER ELEMANLAR --- */
-.recipe-card, .detail-card, [data-testid="stSidebar"], .st-emotion-cache-1r6slb0, .st-emotion-cache-19rxjzo {{
-    background-color: var(--secondary-color) !important;
-    border-radius: 12px;
-    border: 1px solid #EAEAEA;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-}}
-.recipe-card:hover {{
-    transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-}}
 
-/* Önceki stillerin devamı... */
+/* --- DİĞER TÜM STİLLER (Aynı kalıyor) --- */
 h2, h5 {{ font-family: 'Quicksand', sans-serif !important; color: var(--text-color) !important; font-weight: 700; }}
 .recipe-card-link {{ text-decoration: none; }}
-.recipe-card {{ margin-bottom: 1.5rem; overflow: hidden; transition: all 0.3s ease; height: 450px; display: flex; flex-direction: column; }}
-.card-image {{ width: 100%; height: 350px; object-fit: cover; display: block; flex-shrink: 0; }}
+.recipe-card {{ background-color: var(--secondary-color) !important; border-radius: 12px; border: 1px solid #EAEAEA; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 1.5rem; overflow: hidden; transition: all 0.3s ease; display: flex; flex-direction: column; }}
+.recipe-card:hover {{ transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }}
 .card-body {{ padding: 1rem; flex-grow: 1; display: flex; flex-direction: column; }}
-.card-body h3 {{ font-weight: 700; font-size: 1.1rem; color: var(--text-color) !important; margin: 0 0 0.5rem 0; line-height: 1.3; height: 2.6em; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }}
-.card-metadata {{ display: flex; flex-direction: row; justify-content: space-between; align-items: center; font-size: 0.8rem; color: #777; margin-top: auto; padding-top: 0.5rem; border-top: 1px solid #F0F0F0; }}
+.card-metadata {{ display: flex; flex-direction: row; justify-content: space-between; align-items: center; color: #777; margin-top: auto; border-top: 1px solid #F0F0F0; }}
 .card-metadata span {{ display: flex; align-items: center; gap: 5px; }}
 .detail-page-title {{ font-family: 'Dancing Script', cursive !important; font-size: 3.5rem; text-align: center; margin-bottom: 1rem; color: var(--text-color); }}
-.detail-card {{ padding: 1.5rem; height: 100%; }}
+.detail-card {{ padding: 1.5rem; height: 100%; background-color: var(--secondary-color); border-radius: 12px; border: 1px solid #EAEAEA; }}
 .detail-card img {{ width: 100%; border-radius: 8px; }}
 .detail-card h5 {{ border-bottom: 2px solid #F0F0F0; padding-bottom: 8px; margin-top: 0; }}
 .detail-card-text {{ white-space: pre-wrap; font-size: 0.9rem; line-height: 1.7; }}
-
-/* Yapay Zeka Cevap Kutusu */
-.ai-response {{
-    background-color: #F0FFF0;
-    border-left: 5px solid #2E8B57;
-    padding: 1rem;
-    border-radius: 8px;
-    white-space: pre-wrap;
-    font-family: 'Quicksand', sans-serif;
-    line-height: 1.7;
-}}
+.ai-response {{ background-color: #F0FFF0; border-left: 5px solid #2E8B57; padding: 1rem; border-radius: 8px; white-space: pre-wrap; font-family: 'Quicksand', sans-serif; line-height: 1.7; }}
+[data-testid="stSidebar"] {{ background-color: var(--secondary-color); border-right: 1px solid #EAEAEA; }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -252,18 +255,20 @@ def show_recipe_detail(recipe_id, df):
         st.markdown(f"""<div class="detail-card"><h5>Yapılışı</h5><div class="detail-card-text">{recipe.get('yapilisi', 'Eklenmemiş')}</div></div>""", unsafe_allow_html=True)
 
 # --- ANA SAYFA GÖRÜNÜMÜ ---
-# --- "NE PİŞİRSEM?" SAYFASININ DÜZELTİLMİŞ HALİ ---
+# --- GÜNCELLENMİŞ ANA SAYFA FONKSİYONU ---
 def show_main_page():
-    # Yeni Header
+    # YENİ: Header'ı sayfanın en başında, menüden önce oluşturuyoruz
     st.markdown("<header><h1>🌸 Ceren'in Defteri 🌸</h1></header>", unsafe_allow_html=True)
-
+    
     all_recipes_df = fetch_all_recipes()
     
+    # Menü artık header'ın altında görünecek
     selected_page = option_menu(
         menu_title=None, options=["Tüm Tarifler", "⭐ Favorilerim", "Ne Pişirsem?", "Yeni Tarif Ekle"],
         icons=['card-list', 'star-fill', 'lightbulb', 'plus-circle'], menu_icon="cast", default_index=0, orientation="horizontal"
     )
 
+    # Fonksiyonun geri kalanı aynı...
     if selected_page == "Tüm Tarifler":
         filtered_recipes = build_sidebar(all_recipes_df)
         display_recipe_cards_final(filtered_recipes.sort_values(by='id', ascending=False))
@@ -306,21 +311,15 @@ def show_main_page():
                 ai_response = generate_recipe_with_ai(selected_ingredients)
                 if ai_response:
                     st.markdown("### 🤖 Yapay Zeka Şefin Önerisi")
-                    
-                    # --- DEĞİŞİKLİK BURADA ---
-                    # Eski hatalı kod: st.markdown(st.write_stream(ai_response), unsafe_allow_html=True)
-                    # YENİ DOĞRU KOD:
-                    # Gelen her bir parçanın (chunk) içindeki metni (.text) alıp yazdırıyoruz.
                     st.write_stream(chunk.text for chunk in ai_response)
-                    # -------------------------
 
         if not selected_ingredients and (find_recipe_button or ai_recipe_button):
              st.warning("Lütfen önce en az bir malzeme seçin.")
         elif not selected_ingredients:
              st.info("Sonuçları görmek için yukarıdan malzeme seçin ve bir butona basın.")
 
-
     elif selected_page == "Yeni Tarif Ekle":
+        # ... (Bu kısım aynı, değişiklik yok)
         st.markdown("<h2>Yeni Bir Tarif Ekle</h2>", unsafe_allow_html=True)
         with st.form("new_recipe_page_form", clear_on_submit=True):
             col1, col2 = st.columns(2)
@@ -340,7 +339,7 @@ def show_main_page():
                     with st.spinner("İşleniyor..."):
                         thumbnail_url = get_instagram_thumbnail(insta_url)
                         if thumbnail_url:
-                            new_row = [datetime.now().strftime("%Y%m%d%H%M%S"), insta_url, tarif_basligi, yapilisi, malzemeler, kategori, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), thumbnail_url, yemek_zorlugu, hazirlanma_suresi, "HAYIR"]
+                            new_row = [datetime.now().strftime("%Y%m%d%H%M%S"), insta_url, tarif_basligi, yapilisi, malzemeler, kategori, datetime.now().strftime("%Y-%m-%d %H%M%S"), thumbnail_url, yemek_zorlugu, hazirlanma_suresi, "HAYIR"]
                             worksheet.append_row(new_row, value_input_option='USER_ENTERED')
                             st.cache_data.clear()
                             st.success("Tarif başarıyla kaydedildi!")
