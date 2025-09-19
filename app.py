@@ -148,6 +148,55 @@ except Exception as e:
     st.error(f"Google E-Tablosu'na bağlanırken bir hata oluştu: {e}"); st.stop()
 
 # --- YARDIMCI FONKSİYONLAR ---
+
+# --- ESKİ FOTOĞRAFLARI YENİLEME FONKSİYONU ---
+def refresh_all_thumbnails():
+    st.info("Eski ve bozuk kapak fotoğrafları yenileniyor... Bu işlem biraz zaman alabilir.")
+    
+    # Önbelleği kullanmadan en güncel veriyi çekelim
+    all_recipes_df = pd.DataFrame(worksheet.get_all_records())
+    # Sütun isimlerini temizleyelim ki tutarlı olsun
+    all_recipes_df.columns = [col.strip().lower().replace(' ', '_') for col in all_recipes_df.columns]
+
+    updated_count = 0
+    total_rows = len(all_recipes_df)
+    progress_bar = st.progress(0, text="Yenileme işlemi başladı...")
+
+    # DataFrame üzerinden satır satır ilerleyelim
+    for index, row in all_recipes_df.iterrows():
+        # İlerleme çubuğunu güncelle
+        progress_text = f"Satır {index + 2}/{total_rows + 1} işleniyor..."
+        progress_bar.progress((index + 1) / total_rows, text=progress_text)
+        
+        original_post_url = row.get('url')
+        current_thumbnail_url = row.get('thumbnail_url')
+        recipe_id = str(row.get('id'))
+
+        if original_post_url and recipe_id:
+            try:
+                new_thumbnail_url = get_instagram_thumbnail(original_post_url)
+                
+                # Yeni URL geçerliyse ve eskisinden farklıysa güncelle
+                if new_thumbnail_url and new_thumbnail_url != current_thumbnail_url:
+                    # E-Tabloda doğru satırı bulmak için ID'yi kullan
+                    cell = worksheet.find(recipe_id)
+                    if cell:
+                        # 'thumbnail_url' sütununun index'ini bul
+                        header = [h.strip().lower().replace(' ', '_') for h in worksheet.row_values(1)]
+                        thumbnail_col_index = header.index('thumbnail_url') + 1
+                        
+                        worksheet.update_cell(cell.row, thumbnail_col_index, new_thumbnail_url)
+                        updated_count += 1
+                        time.sleep(1.1) # Google Sheets API limitine takılmamak için bekle
+
+            except Exception as e:
+                st.warning(f"'{row.get('baslik')}' tarifi işlenirken bir hata oluştu: {e}")
+
+    progress_bar.empty()
+    st.success(f"Yenileme tamamlandı! Toplam {updated_count} adet tarifin kapak fotoğrafı güncellendi.")
+    st.cache_data.clear()
+    st.rerun()
+
 @st.cache_data(ttl=600)
 def fetch_all_recipes():
     records = worksheet.get_all_records()
@@ -184,7 +233,15 @@ def build_sidebar(df):
         min_süre = int(df['hazirlanma_suresi'].min())
         max_süre = int(df['hazirlanma_suresi'].max()) if df['hazirlanma_suresi'].max() > 0 else 120
         selected_süre_aralığı = st.slider("Hazırlanma Süresi (dk)", min_süre, max_süre, (min_süre, max_süre))
+        
+        # --- YENİLEME BUTONU BURAYA EKLENDİ ---
+        st.markdown("---")
+        st.markdown("<h5>🛠️ Bakım Araçları</h5>", unsafe_allow_html=True)
+        if st.button("🔄 Bozuk Fotoğrafları Düzelt"):
+            refresh_all_thumbnails()
+        # ------------------------------------
 
+    # Filtreleme Mantığı (değişmedi)
     filtered_df = df.copy()
     if search_query:
         filtered_df = filtered_df[filtered_df['baslik'].str.contains(search_query, case=False, na=False)]
