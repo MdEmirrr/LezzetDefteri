@@ -68,16 +68,13 @@ div[data-testid="stHeading"] {{ display: none; }}
 /* --- SİDEBAR --- */
 div[data-testid="stSidebar"] {{
     background-color: var(--secondary-green) !important;
-    border-right: 1px solid var(--primary-green);
 }}
 div[data-testid="stSidebar"] h2, div[data-testid="stSidebar"] label, div[data-testid="stSidebar"] p {{
     color: var(--text-dark) !important;
-    text-shadow: none;
 }}
 div[data-testid="stSidebar"] .stMultiSelect>div>div, div[data-testid="stSidebar"] .stSlider>div, div[data-testid="stSidebar"] .stTextInput>div>div>input {{
     background-color: rgba(255,255,255,0.7) !important;
     border: 1px solid var(--primary-green);
-    color: var(--text-dark) !important;
 }}
 
 /* --- ÜST NAVİGASYON MENÜSÜ --- */
@@ -225,7 +222,8 @@ def show_recipe_detail(recipe_id, df):
     recipe_df = df[df['id'].astype(str) == str(recipe_id)]
     if recipe_df.empty: st.error("Aradığınız tarif bulunamadı."); st.stop()
     recipe = recipe_df.iloc[0]
-    
+
+    # Butonlar için sütunlar
     col_b1, col_b2, col_b3, col_b4 = st.columns([2, 2, 2, 6])
     with col_b1:
         if st.button("⬅️ Geri"):
@@ -308,6 +306,7 @@ def show_edit_form(recipe_id, df):
             except Exception as e:
                 st.error(f"Güncelleme sırasında bir hata oluştu: {e}")
 
+# --- ANA SAYFA GÖRÜNÜMÜ ---
 def show_main_page():
     st.markdown("""<header><h1>🌸 Ceren'in Defteri 🌸</h1></header>""", unsafe_allow_html=True)
     all_recipes_df = fetch_all_recipes()
@@ -326,11 +325,60 @@ def show_main_page():
         display_recipe_cards_final(favorites_df.sort_values(by='id', ascending=False))
     elif selected_page == "Ne Pişirsem?":
         st.markdown("<h2>Ne Pişirsem?</h2>", unsafe_allow_html=True)
-        # ...
-        pass
+        ingredient_search = st.text_input("Malzeme Ara...", placeholder="Aradığın malzemeyi yazarak listeyi kısalt...")
+        selected_ingredients = []
+        for category, ingredients in CATEGORIZED_INGREDIENTS.items():
+            ingredients_to_show = [ing for ing in ingredients if ingredient_search.lower() in ing.lower()] if ingredient_search else ingredients
+            if ingredients_to_show:
+                with st.expander(category, expanded=bool(ingredient_search)):
+                    cols = st.columns(4)
+                    for i, ingredient in enumerate(ingredients_to_show):
+                        with cols[i % 4]:
+                            if st.checkbox(ingredient, key=f"ing_{ingredient}"):
+                                selected_ingredients.append(ingredient)
+        st.write("---")
+        col1, col2 = st.columns(2)
+        with col1:
+            find_recipe_button = st.button("🧑‍🍳 Bu Malzemelerle Tarif Bul", use_container_width=True)
+        with col2:
+            ai_enabled = "google_ai" in st.secrets # AI'yı kontrol et
+            ai_recipe_button = st.button("🤖 Yapay Zekadan Tarif İste!", use_container_width=True, type="primary", disabled=not ai_enabled)
+        if find_recipe_button and selected_ingredients:
+            filtered_df = all_recipes_df.copy()
+            for ingredient in selected_ingredients:
+                filtered_df = filtered_df[filtered_df['malzemeler'].str.contains(ingredient.lower(), case=False, na=False)]
+            display_recipe_cards_final(filtered_df.sort_values(by='id', ascending=False))
+        if ai_recipe_button and selected_ingredients:
+            # Yapay zeka kodu burada olacak...
+            st.info("Yapay zeka özelliği yapım aşamasında!")
+        if not selected_ingredients and (find_recipe_button or ai_recipe_button):
+             st.warning("Lütfen önce en az bir malzeme seçin.")
     elif selected_page == "Yeni Tarif Ekle":
-        # ...
-        pass
+        st.markdown("<h2>Yeni Bir Tarif Ekle</h2>", unsafe_allow_html=True)
+        with st.form("new_recipe_page_form", clear_on_submit=True):
+            col1, col2 = st.columns(2)
+            with col1:
+                insta_url = st.text_input("Instagram Reel Linki")
+                tarif_basligi = st.text_input("Tarif Başlığı")
+                kategori_options = sorted(fetch_all_recipes()['kategori'].unique())
+                kategori = st.selectbox("Kategori", options=kategori_options, placeholder="Bir kategori seçin...")
+                yemek_zorlugu = st.selectbox("Yemek Zorluğu", options=["Basit", "Orta", "Zor"])
+                hazirlanma_suresi = st.number_input("Hazırlanma Süresi (dakika)", min_value=1, step=5)
+            with col2:
+                malzemeler = st.text_area("Malzemeler (Her satıra bir tane)", height=280)
+            yapilisi = st.text_area("Yapılışı (Açıklama)")
+            submitted_add = st.form_submit_button("✨ Tarifi Kaydet", use_container_width=True)
+            if submitted_add:
+                if insta_url and tarif_basligi:
+                    with st.spinner("İşleniyor..."):
+                        thumbnail_url = get_instagram_thumbnail(insta_url)
+                        if thumbnail_url:
+                            new_row = [datetime.now().strftime("%Y%m%d%H%M%S"), insta_url, tarif_basligi.title(), yapilisi, malzemeler, kategori, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), thumbnail_url, yemek_zorlugu, hazirlanma_suresi, "HAYIR"]
+                            worksheet.append_row(new_row, value_input_option='USER_ENTERED')
+                            st.cache_data.clear()
+                            st.success("Tarif başarıyla kaydedildi!")
+                        else: st.error("Bu linkten kapak fotoğrafı alınamadı.")
+                else: st.warning("Lütfen en azından Link ve Başlık alanlarını doldurun.")
 
 # --- ANA UYGULAMA YÖNLENDİRİCİSİ (ROUTER) ---
 if 'recipe_to_edit_id' not in st.session_state:
