@@ -335,18 +335,49 @@ def refresh_all_thumbnails():
     st.cache_data.clear()
     st.rerun()
 
+# --- GÜNCELLENMİŞ VE DAHA AKILLI FOTOĞRAF ÇEKME FONKSİYONU ---
 def get_instagram_thumbnail(url):
+    # Instagram URL'sini temizleyerek temel adresi alalım
+    clean_url = url.split('?')[0]
+    
+    # Instagram'ın botları engellemek için kullandığı genel bir adrese yönlendirmesini engellemek için
+    if "instagram.com/accounts/login" in clean_url:
+        st.warning(f"Giriş sayfasına yönlendirildi, atlanıyor: {url}")
+        return None
+        
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1',
+        'Accept-Language': 'en-US,en;q=0.9'
+    }
+    
     try:
-        headers = {'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 13_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1.1 Mobile/15E148 Safari/604.1'}
-        response = requests.get(url, headers=headers, timeout=15)
+        session = requests.Session()
+        response = session.get(clean_url, headers=headers, timeout=20)
+        
+        # Eğer istek başarısız ise durumu belirt
+        if response.status_code != 200:
+            st.warning(f"Başarısız istek (Kod: {response.status_code}) - {clean_url}")
+            return None
+            
         html_text = response.text
-        script_tag = re.search(r'<script type="application/ld\+json">(.+?)</script>', html_text)
-        if script_tag:
-            json_data = json.loads(script_tag.group(1))
-            thumbnail_url = json_data.get('thumbnailUrl') or json_data.get('image');
-            if thumbnail_url: return thumbnail_url
-    except Exception: pass
-    return None
+        
+        # En güvenilir yöntem: Sayfanın HTML'indeki 'og:image' etiketini bulmak
+        soup = BeautifulSoup(html_text, 'html.parser')
+        meta_tag = soup.find('meta', property='og:image')
+        
+        if meta_tag and meta_tag.get('content'):
+            return meta_tag.get('content')
+        else:
+            # Eğer 'og:image' bulunamazsa, bu durumu loglayalım
+            st.warning(f"Meta etiketi bulunamadı - {clean_url}")
+            return None
+
+    except requests.exceptions.RequestException as e:
+        st.error(f"URL'ye erişirken ağ hatası oluştu: {e}")
+        return None
+    except Exception as e:
+        st.error(f"Bilinmeyen bir hata oluştu: {e}")
+        return None
 
 def build_sidebar(df):
     with st.sidebar:
