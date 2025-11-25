@@ -12,7 +12,6 @@ import re
 import time
 import random
 import google.generativeai as genai
-# import google.generativeai as genai # Yapay zeka kütüphanesini şimdilik yorum satırı yapalım
 
 # --- GÖRSEL AYARLAR VE STİL ---
 st.set_page_config(page_title="Ceren'in Defteri", layout="wide")
@@ -175,7 +174,7 @@ def parse_recipe_with_ai(text_content):
 
 # --- VERİTABANI BAĞLANTISI ---
 try:
-    scopes = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
+    scopes = ['[https://www.googleapis.com/auth/spreadsheets](https://www.googleapis.com/auth/spreadsheets)', '[https://www.googleapis.com/auth/drive](https://www.googleapis.com/auth/drive)']
     creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=scopes)
     gc = gspread.authorize(creds)
     spreadsheet = gc.open("Lezzet Defteri Veritabanı")
@@ -305,8 +304,8 @@ def display_recipe_cards_final(df):
                     <div class="card-body">
                         <h3>{html.escape(str(recipe.get('baslik','')).title())}</h3>
                         <div class="card-metadata">
-                            <span title="Zorluk"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.2,10.2l-1-5A1,1,0,0,0,18.22,4H5.78a1,1,0,0,0-1,.81l-1,5a1,1,0,0,0,0,.38V18a2,2,0,0,0,2,2H18a2,2,0,0,0,2-2V10.58A1,1,0,0,0,20.2,10.2ZM5.2,6H18.8l.6,3H4.6ZM18,18H6V12H18Z"/></svg><b>{recipe.get('yemek_zorlugu', 'N/A')}</b></span>
-                            <span title="Süre"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12,2A10,10,0,1,0,22,12,10,10,0,0,0,12,2Zm0,18a8,8,0,1,1,8-8A8,8,0,0,1,12,20Zm4-9.5H12.5V7a1,1,0,0,0-2,0v5.5a1,1,0,0,0,1,1H16a1,1,0,0,0,0-2Z"/></svg><b>{recipe.get('hazirlanma_suresi', 0)} dk</b></span>
+                            <span title="Zorluk"><svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" viewBox="0 0 24 24"><path d="M20.2,10.2l-1-5A1,1,0,0,0,18.22,4H5.78a1,1,0,0,0-1,.81l-1,5a1,1,0,0,0,0,.38V18a2,2,0,0,0,2,2H18a2,2,0,0,0,2-2V10.58A1,1,0,0,0,20.2,10.2ZM5.2,6H18.8l.6,3H4.6ZM18,18H6V12H18Z"/></svg><b>{recipe.get('yemek_zorlugu', 'N/A')}</b></span>
+                            <span title="Süre"><svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" viewBox="0 0 24 24"><path d="M12,2A10,10,0,1,0,22,12,10,10,0,0,0,12,2Zm0,18a8,8,0,1,1,8-8A8,8,0,0,1,12,20Zm4-9.5H12.5V7a1,1,0,0,0-2,0v5.5a1,1,0,0,0,1,1H16a1,1,0,0,0,0-2Z"/></svg><b>{recipe.get('hazirlanma_suresi', 0)} dk</b></span>
                         </div>
                     </div>
                 </div>
@@ -453,116 +452,116 @@ def show_main_page():
             st.info("Yapay zeka özelliği şimdilik kapalı.")
 
     elif selected_page == "Yeni Tarif Ekle":
-    st.markdown("<h2>✨ Yeni Tarif Ekle (Akıllı Asistan)</h2>", unsafe_allow_html=True)
-    st.info("💡 İpucu: Instagram gönderisindeki açıklamayı kopyalayıp buraya yapıştır, gerisini ben hallederim!")
+        st.markdown("<h2>✨ Yeni Tarif Ekle (Akıllı Asistan)</h2>", unsafe_allow_html=True)
+        st.info("💡 İpucu: Instagram gönderisindeki açıklamayı kopyalayıp buraya yapıştır, gerisini ben hallederim!")
 
-    # Session state tanımları (Form verilerini hafızada tutmak için)
-    if 'ai_form_data' not in st.session_state:
-        st.session_state.ai_form_data = {}
+        # Session state tanımları (Form verilerini hafızada tutmak için)
+        if 'ai_form_data' not in st.session_state:
+            st.session_state.ai_form_data = {}
 
-    # --- 1. ADIM: AI ANALİZ KUTUSU ---
-    with st.container():
-        col_ai1, col_ai2 = st.columns([3, 1])
-        with col_ai1:
-            insta_caption = st.text_area("Instagram Açıklamasını Buraya Yapıştır:", height=120, placeholder="Örn: 2 yumurta, 1 bardak un... Yapılışı: Hepsini karıştırın...")
-        with col_ai2:
-            st.write("") # Boşluk
-            st.write("") 
-            if st.button("✨ BİLGİLERİ\nAYRIŞTIR", type="primary", use_container_width=True):
-                if insta_caption:
-                    with st.spinner("Tarif okunuyor, malzemeler ayrıştırılıyor..."):
-                        ai_result = parse_recipe_with_ai(insta_caption)
-                        if ai_result:
-                            st.session_state.ai_form_data = ai_result
-                            st.success("Başarılı! Aşağıdaki formu kontrol et.")
-                        else:
-                            st.error("Metin anlaşılamadı, lütfen manuel doldur.")
-                else:
-                    st.warning("Lütfen önce metin yapıştır.")
+        # --- 1. ADIM: AI ANALİZ KUTUSU ---
+        with st.container():
+            col_ai1, col_ai2 = st.columns([3, 1])
+            with col_ai1:
+                insta_caption = st.text_area("Instagram Açıklamasını Buraya Yapıştır:", height=120, placeholder="Örn: 2 yumurta, 1 bardak un... Yapılışı: Hepsini karıştırın...")
+            with col_ai2:
+                st.write("") # Boşluk
+                st.write("") 
+                if st.button("✨ BİLGİLERİ\nAYRIŞTIR", type="primary", use_container_width=True):
+                    if insta_caption:
+                        with st.spinner("Tarif okunuyor, malzemeler ayrıştırılıyor..."):
+                            ai_result = parse_recipe_with_ai(insta_caption)
+                            if ai_result:
+                                st.session_state.ai_form_data = ai_result
+                                st.success("Başarılı! Aşağıdaki formu kontrol et.")
+                            else:
+                                st.error("Metin anlaşılamadı, lütfen manuel doldur.")
+                    else:
+                        st.warning("Lütfen önce metin yapıştır.")
 
-    st.write("---")
+        st.write("---")
 
-    # --- 2. ADIM: KAYIT FORMU (Otomatik Dolar) ---
-    # Verileri session_state'ten çekiyoruz (AI doldurduysa oradan gelir)
-    form_data = st.session_state.ai_form_data
+        # --- 2. ADIM: KAYIT FORMU (Otomatik Dolar) ---
+        # Verileri session_state'ten çekiyoruz (AI doldurduysa oradan gelir)
+        form_data = st.session_state.ai_form_data
 
-    with st.form("new_recipe_page_form", clear_on_submit=False):
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            # Başlık
-            tarif_basligi = st.text_input("Tarif Başlığı", value=form_data.get('baslik', ''))
+        with st.form("new_recipe_page_form", clear_on_submit=False):
+            col1, col2 = st.columns(2)
             
-            # Linkler (Görsel sorunu için hem Insta hem Manuel link)
-            insta_url = st.text_input("Instagram Linki (Varsa)", placeholder="[https://instagram.com/](https://instagram.com/)...")
-            thumbnail_manual = st.text_input("Veya Resim Linki (Opsiyonel)", placeholder="Google'dan bir resim linki...")
-            
-            # Kategori Seçimi
-            cat_list = ["Ana Yemek", "Tatlı", "Kahvaltılık", "Çorba", "Salata", "Atıştırmalık"]
-            # AI'dan gelen kategori listede var mı diye bak, yoksa ilkini seç
-            default_cat_index = 0
-            if form_data.get('kategori') in cat_list:
-                default_cat_index = cat_list.index(form_data.get('kategori'))
-            kategori = st.selectbox("Kategori", options=cat_list, index=default_cat_index)
-            
-            # Zorluk
-            dif_list = ["Basit", "Orta", "Zor"]
-            default_dif_index = 0
-            if form_data.get('zorluk') in dif_list:
-                default_dif_index = dif_list.index(form_data.get('zorluk'))
-            yemek_zorlugu = st.selectbox("Yemek Zorluğu", options=dif_list, index=default_dif_index)
+            with col1:
+                # Başlık
+                tarif_basligi = st.text_input("Tarif Başlığı", value=form_data.get('baslik', ''))
+                
+                # Linkler (Görsel sorunu için hem Insta hem Manuel link)
+                insta_url = st.text_input("Instagram Linki (Varsa)", placeholder="[https://instagram.com/](https://instagram.com/)...")
+                thumbnail_manual = st.text_input("Veya Resim Linki (Opsiyonel)", placeholder="Google'dan bir resim linki...")
+                
+                # Kategori Seçimi
+                cat_list = ["Ana Yemek", "Tatlı", "Kahvaltılık", "Çorba", "Salata", "Atıştırmalık"]
+                # AI'dan gelen kategori listede var mı diye bak, yoksa ilkini seç
+                default_cat_index = 0
+                if form_data.get('kategori') in cat_list:
+                    default_cat_index = cat_list.index(form_data.get('kategori'))
+                kategori = st.selectbox("Kategori", options=cat_list, index=default_cat_index)
+                
+                # Zorluk
+                dif_list = ["Basit", "Orta", "Zor"]
+                default_dif_index = 0
+                if form_data.get('zorluk') in dif_list:
+                    default_dif_index = dif_list.index(form_data.get('zorluk'))
+                yemek_zorlugu = st.selectbox("Yemek Zorluğu", options=dif_list, index=default_dif_index)
 
-            # Süre
-            hazirlanma_suresi = st.number_input("Hazırlanma Süresi (dk)", min_value=1, step=5, value=int(form_data.get('sure', 15)))
+                # Süre
+                hazirlanma_suresi = st.number_input("Hazırlanma Süresi (dk)", min_value=1, step=5, value=int(form_data.get('sure', 15)))
 
-        with col2:
-            malzemeler = st.text_area("Malzemeler", value=form_data.get('malzemeler', ''), height=250)
-            yapilisi = st.text_area("Yapılışı", value=form_data.get('yapilisi', ''), height=250)
+            with col2:
+                malzemeler = st.text_area("Malzemeler", value=form_data.get('malzemeler', ''), height=250)
+                yapilisi = st.text_area("Yapılışı", value=form_data.get('yapilisi', ''), height=250)
 
-        submitted_add = st.form_submit_button("💾 Tarifi Deftere Kaydet", use_container_width=True)
+            submitted_add = st.form_submit_button("💾 Tarifi Deftere Kaydet", use_container_width=True)
 
-        if submitted_add:
-            if tarif_basligi and (insta_url or thumbnail_manual):
-                with st.spinner("Kaydediliyor..."):
-                    # Görsel Belirleme Mantığı
-                    final_thumbnail = "[https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=1000&auto=format&fit=crop](https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=1000&auto=format&fit=crop)" # Varsayılan
-                    
-                    # 1. Öncelik: Instagram'dan çekmeyi dene (Senin eski fonksiyonun)
-                    if insta_url:
-                        scraped = get_instagram_thumbnail(insta_url)
-                        if scraped:
-                            final_thumbnail = scraped
-                        elif thumbnail_manual: # Insta başarısızsa manuel linke bak
+            if submitted_add:
+                if tarif_basligi and (insta_url or thumbnail_manual):
+                    with st.spinner("Kaydediliyor..."):
+                        # Görsel Belirleme Mantığı
+                        final_thumbnail = "[https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=1000&auto=format&fit=crop](https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=1000&auto=format&fit=crop)" # Varsayılan
+                        
+                        # 1. Öncelik: Instagram'dan çekmeyi dene (Senin eski fonksiyonun)
+                        if insta_url:
+                            scraped = get_instagram_thumbnail(insta_url)
+                            if scraped:
+                                final_thumbnail = scraped
+                            elif thumbnail_manual: # Insta başarısızsa manuel linke bak
+                                final_thumbnail = thumbnail_manual
+                        elif thumbnail_manual: # Insta linki hiç yoksa manueli al
                             final_thumbnail = thumbnail_manual
-                    elif thumbnail_manual: # Insta linki hiç yoksa manueli al
-                        final_thumbnail = thumbnail_manual
-                    
-                    # Veriyi Hazırla
-                    new_row = [
-                        datetime.now().strftime("%Y%m%d%H%M%S"), # ID
-                        insta_url if insta_url else "", 
-                        tarif_basligi.title(), 
-                        yapilisi, 
-                        malzemeler, 
-                        kategori, 
-                        datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 
-                        final_thumbnail, 
-                        yemek_zorlugu, 
-                        hazirlanma_suresi, 
-                        "HAYIR"
-                    ]
-                    
-                    try:
-                        worksheet.append_row(new_row, value_input_option='USER_ENTERED')
-                        st.success(f"✅ '{tarif_basligi}' başarıyla kaydedildi!")
-                        st.balloons() # Biraz kutlama efekti :)
-                        st.session_state.ai_form_data = {} # Formu temizle
-                        time.sleep(2)
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Kayıt sırasında hata: {e}")
-            else:
-                st.warning("Lütfen en azından Başlık ve bir Link giriniz.")
+                        
+                        # Veriyi Hazırla
+                        new_row = [
+                            datetime.now().strftime("%Y%m%d%H%M%S"), # ID
+                            insta_url if insta_url else "", 
+                            tarif_basligi.title(), 
+                            yapilisi, 
+                            malzemeler, 
+                            kategori, 
+                            datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 
+                            final_thumbnail, 
+                            yemek_zorlugu, 
+                            hazirlanma_suresi, 
+                            "HAYIR"
+                        ]
+                        
+                        try:
+                            worksheet.append_row(new_row, value_input_option='USER_ENTERED')
+                            st.success(f"✅ '{tarif_basligi}' başarıyla kaydedildi!")
+                            st.balloons() # Biraz kutlama efekti :)
+                            st.session_state.ai_form_data = {} # Formu temizle
+                            time.sleep(2)
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Kayıt sırasında hata: {e}")
+                else:
+                    st.warning("Lütfen en azından Başlık ve bir Link giriniz.")
 
 # --- ANA UYGULAMA YÖNLENDİRİCİSİ (ROUTER) ---
 if 'recipe_to_edit_id' not in st.session_state:
