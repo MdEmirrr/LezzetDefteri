@@ -11,6 +11,7 @@ import json
 import re
 import time
 import random
+import google.generativeai as genai
 # import google.generativeai as genai # Yapay zeka kütüphanesini şimdilik yorum satırı yapalım
 
 # --- GÖRSEL AYARLAR VE STİL ---
@@ -136,6 +137,41 @@ CATEGORIZED_INGREDIENTS = {
     "Kuruyemiş & Tatlı 🍫": ["Ceviz", "Fındık", "Badem", "Çikolata", "Kakao", "Bal"],
     "Baharatlar 🌿": ["Karabiber", "Nane", "Kekik", "Pul biber", "Kimyon", "Toz biber"]
 }
+
+# Gemini API Kurulumu
+if "general" in st.secrets and "gemini_api_key" in st.secrets["general"]:
+    genai.configure(api_key=st.secrets["general"]["gemini_api_key"])
+
+def parse_recipe_with_ai(text_content):
+    """Instagram açıklamasını AI ile analiz edip JSON döndürür."""
+    # Model tanımlaması
+    model = genai.GenerativeModel('gemini-1.5-flash')
+    
+    prompt = f"""
+    Sen uzman bir aşçısın. Aşağıdaki Instagram gönderisi metnini analiz et.
+    Bana SADECE geçerli bir JSON formatında şu bilgileri ver. Başka hiçbir metin yazma.
+    
+    İstenen JSON Formatı:
+    {{
+        "baslik": "Yemeğin adı (kısa, baş harfleri büyük)",
+        "malzemeler": "Malzemeleri alt alta maddeler halinde string olarak yaz",
+        "yapilisi": "Yapılış adımlarını anlaşılır bir paragraf olarak yaz",
+        "sure": "Tahmini hazırlama süresi (sadece sayı, dakika cinsinden, örn: 30)",
+        "zorluk": "Basit, Orta veya Zor (tarifin karmaşıklığına göre seç)",
+        "kategori": "Ana Yemek, Tatlı, Kahvaltılık, Çorba, Salata, Atıştırmalık (bunlardan en uygununu seç)"
+    }}
+
+    Analiz edilecek metin:
+    {text_content}
+    """
+    try:
+        response = model.generate_content(prompt)
+        # Bazen AI cevabı ```json ile sarmalar, temizleyelim
+        cleaned_text = response.text.replace("```json", "").replace("```", "").strip()
+        return json.loads(cleaned_text)
+    except Exception as e:
+        st.error(f"AI Analizi başarısız oldu: {e}")
+        return None
 
 # --- VERİTABANI BAĞLANTISI ---
 try:
@@ -417,31 +453,116 @@ def show_main_page():
             st.info("Yapay zeka özelliği şimdilik kapalı.")
 
     elif selected_page == "Yeni Tarif Ekle":
-        st.markdown("<h2>Yeni Bir Tarif Ekle</h2>", unsafe_allow_html=True)
-        with st.form("new_recipe_page_form", clear_on_submit=True):
-            col1, col2 = st.columns(2)
-            with col1:
-                insta_url = st.text_input("Instagram Reel Linki")
-                tarif_basligi = st.text_input("Tarif Başlığı")
-                kategori_options = sorted(fetch_all_recipes()['kategori'].unique())
-                kategori = st.selectbox("Kategori", options=kategori_options, placeholder="Bir kategori seçin...")
-                yemek_zorlugu = st.selectbox("Yemek Zorluğu", options=["Basit", "Orta", "Zor"])
-                hazirlanma_suresi = st.number_input("Hazırlanma Süresi (dakika)", min_value=1, step=5)
-            with col2:
-                malzemeler = st.text_area("Malzemeler (Her satıra bir tane)", height=280)
-            yapilisi = st.text_area("Yapılışı (Açıklama)")
-            submitted_add = st.form_submit_button("✨ Tarifi Kaydet", use_container_width=True)
-            if submitted_add:
-                if insta_url and tarif_basligi:
-                    with st.spinner("İşleniyor..."):
-                        thumbnail_url = get_instagram_thumbnail(insta_url)
-                        if thumbnail_url:
-                            new_row = [datetime.now().strftime("%Y%m%d%H%M%S"), insta_url, tarif_basligi.title(), yapilisi, malzemeler, kategori, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), thumbnail_url, yemek_zorlugu, hazirlanma_suresi, "HAYIR"]
-                            worksheet.append_row(new_row, value_input_option='USER_ENTERED')
-                            st.cache_data.clear()
-                            st.success("Tarif başarıyla kaydedildi!")
-                        else: st.error("Bu linkten kapak fotoğrafı alınamadı.")
-                else: st.warning("Lütfen en azından Link ve Başlık alanlarını doldurun.")
+    st.markdown("<h2>✨ Yeni Tarif Ekle (Akıllı Asistan)</h2>", unsafe_allow_html=True)
+    st.info("💡 İpucu: Instagram gönderisindeki açıklamayı kopyalayıp buraya yapıştır, gerisini ben hallederim!")
+
+    # Session state tanımları (Form verilerini hafızada tutmak için)
+    if 'ai_form_data' not in st.session_state:
+        st.session_state.ai_form_data = {}
+
+    # --- 1. ADIM: AI ANALİZ KUTUSU ---
+    with st.container():
+        col_ai1, col_ai2 = st.columns([3, 1])
+        with col_ai1:
+            insta_caption = st.text_area("Instagram Açıklamasını Buraya Yapıştır:", height=120, placeholder="Örn: 2 yumurta, 1 bardak un... Yapılışı: Hepsini karıştırın...")
+        with col_ai2:
+            st.write("") # Boşluk
+            st.write("") 
+            if st.button("✨ BİLGİLERİ\nAYRIŞTIR", type="primary", use_container_width=True):
+                if insta_caption:
+                    with st.spinner("Tarif okunuyor, malzemeler ayrıştırılıyor..."):
+                        ai_result = parse_recipe_with_ai(insta_caption)
+                        if ai_result:
+                            st.session_state.ai_form_data = ai_result
+                            st.success("Başarılı! Aşağıdaki formu kontrol et.")
+                        else:
+                            st.error("Metin anlaşılamadı, lütfen manuel doldur.")
+                else:
+                    st.warning("Lütfen önce metin yapıştır.")
+
+    st.write("---")
+
+    # --- 2. ADIM: KAYIT FORMU (Otomatik Dolar) ---
+    # Verileri session_state'ten çekiyoruz (AI doldurduysa oradan gelir)
+    form_data = st.session_state.ai_form_data
+
+    with st.form("new_recipe_page_form", clear_on_submit=False):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # Başlık
+            tarif_basligi = st.text_input("Tarif Başlığı", value=form_data.get('baslik', ''))
+            
+            # Linkler (Görsel sorunu için hem Insta hem Manuel link)
+            insta_url = st.text_input("Instagram Linki (Varsa)", placeholder="[https://instagram.com/](https://instagram.com/)...")
+            thumbnail_manual = st.text_input("Veya Resim Linki (Opsiyonel)", placeholder="Google'dan bir resim linki...")
+            
+            # Kategori Seçimi
+            cat_list = ["Ana Yemek", "Tatlı", "Kahvaltılık", "Çorba", "Salata", "Atıştırmalık"]
+            # AI'dan gelen kategori listede var mı diye bak, yoksa ilkini seç
+            default_cat_index = 0
+            if form_data.get('kategori') in cat_list:
+                default_cat_index = cat_list.index(form_data.get('kategori'))
+            kategori = st.selectbox("Kategori", options=cat_list, index=default_cat_index)
+            
+            # Zorluk
+            dif_list = ["Basit", "Orta", "Zor"]
+            default_dif_index = 0
+            if form_data.get('zorluk') in dif_list:
+                default_dif_index = dif_list.index(form_data.get('zorluk'))
+            yemek_zorlugu = st.selectbox("Yemek Zorluğu", options=dif_list, index=default_dif_index)
+
+            # Süre
+            hazirlanma_suresi = st.number_input("Hazırlanma Süresi (dk)", min_value=1, step=5, value=int(form_data.get('sure', 15)))
+
+        with col2:
+            malzemeler = st.text_area("Malzemeler", value=form_data.get('malzemeler', ''), height=250)
+            yapilisi = st.text_area("Yapılışı", value=form_data.get('yapilisi', ''), height=250)
+
+        submitted_add = st.form_submit_button("💾 Tarifi Deftere Kaydet", use_container_width=True)
+
+        if submitted_add:
+            if tarif_basligi and (insta_url or thumbnail_manual):
+                with st.spinner("Kaydediliyor..."):
+                    # Görsel Belirleme Mantığı
+                    final_thumbnail = "[https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=1000&auto=format&fit=crop](https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=1000&auto=format&fit=crop)" # Varsayılan
+                    
+                    # 1. Öncelik: Instagram'dan çekmeyi dene (Senin eski fonksiyonun)
+                    if insta_url:
+                        scraped = get_instagram_thumbnail(insta_url)
+                        if scraped:
+                            final_thumbnail = scraped
+                        elif thumbnail_manual: # Insta başarısızsa manuel linke bak
+                            final_thumbnail = thumbnail_manual
+                    elif thumbnail_manual: # Insta linki hiç yoksa manueli al
+                        final_thumbnail = thumbnail_manual
+                    
+                    # Veriyi Hazırla
+                    new_row = [
+                        datetime.now().strftime("%Y%m%d%H%M%S"), # ID
+                        insta_url if insta_url else "", 
+                        tarif_basligi.title(), 
+                        yapilisi, 
+                        malzemeler, 
+                        kategori, 
+                        datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 
+                        final_thumbnail, 
+                        yemek_zorlugu, 
+                        hazirlanma_suresi, 
+                        "HAYIR"
+                    ]
+                    
+                    try:
+                        worksheet.append_row(new_row, value_input_option='USER_ENTERED')
+                        st.success(f"✅ '{tarif_basligi}' başarıyla kaydedildi!")
+                        st.balloons() # Biraz kutlama efekti :)
+                        st.session_state.ai_form_data = {} # Formu temizle
+                        time.sleep(2)
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Kayıt sırasında hata: {e}")
+            else:
+                st.warning("Lütfen en azından Başlık ve bir Link giriniz.")
 
 # --- ANA UYGULAMA YÖNLENDİRİCİSİ (ROUTER) ---
 if 'recipe_to_edit_id' not in st.session_state:
