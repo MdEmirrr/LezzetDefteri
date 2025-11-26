@@ -1,7 +1,7 @@
 import streamlit as st
 import gspread
 import pandas as pd
-from google.oauth2 import service_account # Önemli kütüphane
+from google.oauth2 import service_account
 from datetime import datetime
 import requests
 from bs4 import BeautifulSoup
@@ -107,6 +107,66 @@ CATEGORIZED_INGREDIENTS = {
 if "general" in st.secrets and "gemini_api_key" in st.secrets["general"]:
     genai.configure(api_key=st.secrets["general"]["gemini_api_key"])
 
+# --- YENİ: LINKTEN VERİ ÇEKME FONKSİYONU (RAPIDAPI) ---
+def fetch_instagram_data_via_api(link):
+    """RapidAPI kullanarak linkten Açıklama ve Resim URL'si çeker."""
+    # Linkten Shortcode'u ayıkla (https://www.instagram.com/reel/CxYz123/?... -> CxYz123)
+    shortcode = None
+    match = re.search(r'(?:p|reel|tv)/([A-Za-z0-9_-]+)', link)
+    if match:
+        shortcode = match.group(1)
+    else:
+        return None, "Link formatı geçersiz."
+
+    # RapidAPI Ayarları (Genel 'Instagram Scraper' ayarları)
+    # Eğer senin API key farklı bir servise aitse host adını değiştirmen gerekebilir.
+    url = "https://instagram-scraper-2022.p.rapidapi.com/ig/post_details/"
+    querystring = {"shortcode": shortcode}
+
+    api_key = st.secrets["instagram"]["api_key"] if "instagram" in st.secrets else ""
+    
+    if not api_key:
+        return None, "API Key bulunamadı."
+
+    headers = {
+        "X-RapidAPI-Key": api_key,
+        "X-RapidAPI-Host": "instagram-scraper-2022.p.rapidapi.com"
+    }
+
+    try:
+        response = requests.get(url, headers=headers, params=querystring)
+        if response.status_code == 200:
+            data = response.json()
+            # JSON yapısına göre veriyi çek (API'ye göre değişebilir ama genelde standarttır)
+            caption = ""
+            image_url = ""
+            
+            # Caption bulma
+            try:
+                caption = data['data']['caption']['text']
+            except:
+                caption = "Açıklama bulunamadı."
+                
+            # Resim bulma (En yüksek çözünürlük)
+            try:
+                # Önce carousel (çoklu foto) mi diye bak
+                if 'carousel_media' in data['data']:
+                    image_url = data['data']['carousel_media'][0]['image_versions2']['candidates'][0]['url']
+                else:
+                    image_url = data['data']['image_versions2']['candidates'][0]['url']
+            except:
+                # Video ise thumbnail al
+                try:
+                    image_url = data['data']['image_versions2']['candidates'][0]['url']
+                except:
+                    image_url = None
+
+            return {"caption": caption, "image_url": image_url}, None
+        else:
+            return None, f"API Hatası: {response.status_code} (Yetki yok veya limit doldu)"
+    except Exception as e:
+        return None, f"Bağlantı Hatası: {e}"
+
 def parse_recipe_with_ai(text_content):
     model = genai.GenerativeModel('gemini-1.5-flash')
     prompt = f"""
@@ -130,68 +190,18 @@ def parse_recipe_with_ai(text_content):
         st.error(f"AI Analizi başarısız oldu: {e}")
         return None
 
-# --- VERİTABANI BAĞLANTISI (DÜZELTİLMİŞ) ---
+# --- VERİTABANI BAĞLANTISI ---
 try:
-    # Secrets dosyasından veriyi dictionary olarak al
     creds_dict = dict(st.secrets["gcp_service_account"])
-    
-    # Scopes tanımla
-    scopes = [
-        "https://www.googleapis.com/auth/spreadsheets",
-        "https://www.googleapis.com/auth/drive"
-    ]
-    
-    # Service Account objesi oluştur
-    creds = service_account.Credentials.from_service_account_info(
-        creds_dict,
-        scopes=scopes
-    )
-    
-    # Gspread ile yetkilendir
+    scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+    creds = service_account.Credentials.from_service_account_info(creds_dict, scopes=scopes)
     gc = gspread.authorize(creds)
     spreadsheet = gc.open("Lezzet Defteri Veritabanı")
     worksheet = spreadsheet.worksheet("Sayfa1")
-    
 except Exception as e:
-    st.error(f"⚠️ Bağlantı Hatası: {e}")
-    st.info("Lütfen .streamlit/secrets.toml dosyanızın formatını kontrol edin.")
-    st.stop()
+    st.error(f"⚠️ Bağlantı Hatası: {e}"); st.stop()
 
 # --- YARDIMCI FONKSİYONLAR ---
-def refresh_all_thumbnails():
-    st.info("Kapak fotoğrafları yenileniyor...")
-    all_recipes_df = pd.DataFrame(worksheet.get_all_records())
-    all_recipes_df.columns = [col.strip().lower().replace(' ', '_') for col in all_recipes_df.columns]
-    
-    updated_count = 0
-    total_rows = len(all_recipes_df)
-    progress_bar = st.progress(0, text="Başlıyor...")
-
-    for index, row in all_recipes_df.iterrows():
-        progress_bar.progress((index + 1) / total_rows, text=f"{index+1}/{total_rows} işleniyor")
-        original_post_url = row.get('url')
-        current_thumbnail_url = row.get('thumbnail_url')
-        recipe_id = str(row.get('id'))
-
-        if original_post_url and recipe_id:
-            try:
-                new_thumbnail_url = get_instagram_thumbnail(original_post_url)
-                if new_thumbnail_url and new_thumbnail_url != current_thumbnail_url:
-                    cell = worksheet.find(recipe_id)
-                    if cell:
-                        header = [h.strip().lower().replace(' ', '_') for h in worksheet.row_values(1)]
-                        thumbnail_col_index = header.index('thumbnail_url') + 1
-                        worksheet.update_cell(cell.row, thumbnail_col_index, new_thumbnail_url)
-                        updated_count += 1
-                        time.sleep(1.1)
-            except Exception:
-                pass
-
-    progress_bar.empty()
-    st.success(f"Tamamlandı! {updated_count} fotoğraf güncellendi.")
-    st.cache_data.clear()
-    st.rerun()
-
 @st.cache_data(ttl=600)
 def fetch_all_recipes():
     records = worksheet.get_all_records()
@@ -202,20 +212,6 @@ def fetch_all_recipes():
         if 'hazirlanma_suresi' in df.columns:
             df['hazirlanma_suresi'] = pd.to_numeric(df['hazirlanma_suresi'], errors='coerce').fillna(0).astype(int)
     return df
-
-def get_instagram_thumbnail(url):
-    clean_url = url.split("?")[0]
-    headers = { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1' }
-    try:
-        response = requests.get(clean_url, headers=headers, timeout=20)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, 'html.parser')
-        meta_tag = soup.find('meta', property='og:image')
-        if meta_tag and meta_tag.get('content'):
-            return meta_tag.get('content')
-        return None
-    except Exception:
-        return None
 
 def build_sidebar(df):
     with st.sidebar:
@@ -228,11 +224,7 @@ def build_sidebar(df):
         min_süre = int(df['hazirlanma_suresi'].min())
         max_süre = int(df['hazirlanma_suresi'].max()) if df['hazirlanma_suresi'].max() > 0 else 120
         selected_süre_aralığı = st.slider("Hazırlanma Süresi (dk)", min_süre, max_süre, (min_süre, max_süre))
-        
-        st.markdown("---")
-        if st.button("🔄 Fotoğrafları Düzelt"):
-            refresh_all_thumbnails()
-
+    
     filtered_df = df.copy()
     if search_query:
         filtered_df = filtered_df[filtered_df['baslik'].str.contains(search_query, case=False, na=False)]
@@ -244,9 +236,7 @@ def build_sidebar(df):
     return filtered_df
 
 def display_recipe_cards_final(df):
-    if df.empty:
-        st.warning("Tarif bulunamadı.")
-        return
+    if df.empty: st.warning("Tarif bulunamadı."); return
     st.markdown(f"**{len(df)}** tarif bulundu.")
     st.write("---")
     cols = st.columns(4)
@@ -271,7 +261,6 @@ def show_recipe_detail(recipe_id, df):
     recipe_df = df[df['id'].astype(str) == str(recipe_id)]
     if recipe_df.empty: st.error("Bulunamadı."); st.stop()
     recipe = recipe_df.iloc[0]
-
     col_b1, col_b2, col_b3, col_b4 = st.columns([2, 2, 2, 6])
     with col_b1:
         if st.button("⬅️ Geri"): st.query_params.clear(); st.rerun()
@@ -285,26 +274,21 @@ def show_recipe_detail(recipe_id, df):
         if st.button("✏️ Düzenle"):
             st.session_state.recipe_to_edit_id = recipe['id']
             st.query_params.clear(); st.rerun()
-
     st.markdown(f"<h1 class='detail-page-title'>{recipe['baslik'].title()}</h1>", unsafe_allow_html=True)
     st.markdown("---")
     col1, col2, col3 = st.columns([2, 2, 2], gap="large")
     with col1: st.markdown(f"""<a href="{recipe['url']}" target="_blank"><div class="detail-card"><img src="{recipe['thumbnail_url']}"></div></a>""", unsafe_allow_html=True)
     with col2: st.markdown(f"""<div class="detail-card"><h5>Malzemeler</h5><div class="detail-card-text">{recipe.get('malzemeler', '')}</div></div>""", unsafe_allow_html=True)
     with col3: st.markdown(f"""<div class="detail-card"><h5>Yapılışı</h5><div class="detail-card-text">{recipe.get('yapilisi', '')}</div></div>""", unsafe_allow_html=True)
-    
     st.markdown("---")
     with st.expander("🔴 Tarifi Sil"):
         if st.button("Evet, Sil", type="primary"):
-            cell = worksheet.find(str(recipe['id']))
-            worksheet.delete_rows(cell.row)
-            st.cache_data.clear(); st.success("Silindi."); time.sleep(1); st.query_params.clear(); st.rerun()
+            cell = worksheet.find(str(recipe['id'])); worksheet.delete_rows(cell.row); st.cache_data.clear(); st.success("Silindi."); time.sleep(1); st.query_params.clear(); st.rerun()
 
 def show_edit_form(recipe_id, df):
     recipe_df = df[df['id'].astype(str) == str(recipe_id)]
     if recipe_df.empty: st.error("Hata"); st.stop()
     recipe = recipe_df.iloc[0].to_dict()
-
     st.markdown(f"<h2>✏️ Düzenle: {recipe['baslik']}</h2>", unsafe_allow_html=True)
     with st.form("edit_recipe_form"):
         edit_insta_url = st.text_input("Instagram Linki", value=recipe['url'])
@@ -316,13 +300,10 @@ def show_edit_form(recipe_id, df):
         edit_sure = st.number_input("Süre (dk)", value=int(recipe.get('hazirlanma_suresi', 15)))
         edit_malz = st.text_area("Malzemeler", value=recipe.get('malzemeler', ''), height=200)
         edit_yap = st.text_area("Yapılışı", value=recipe.get('yapilisi', ''), height=200)
-
         col1, col2 = st.columns(2)
         with col1: sub = st.form_submit_button("💾 Kaydet", use_container_width=True)
         with col2: 
-            if st.form_submit_button("❌ İptal", use_container_width=True):
-                st.session_state.recipe_to_edit_id = None; st.rerun()
-        
+            if st.form_submit_button("❌ İptal", use_container_width=True): st.session_state.recipe_to_edit_id = None; st.rerun()
         if sub:
             cell = worksheet.find(str(recipe['id']))
             head = [h.strip().lower().replace(' ', '_') for h in worksheet.row_values(1)]
@@ -344,11 +325,9 @@ def show_main_page():
     if selected_page == "Tüm Tarifler":
         filtered = build_sidebar(all_recipes_df)
         display_recipe_cards_final(filtered.sort_values(by='id', ascending=False))
-        
     elif selected_page == "⭐ Favorilerim":
         favs = all_recipes_df[all_recipes_df['favori'] == 'EVET']
         display_recipe_cards_final(favs.sort_values(by='id', ascending=False))
-        
     elif selected_page == "Ne Pişirsem?":
         st.markdown("<h2>Ne Pişirsem?</h2>", unsafe_allow_html=True)
         search = st.text_input("Malzeme Ara...")
@@ -361,62 +340,94 @@ def show_main_page():
                     for i, ing in enumerate(to_show):
                         with cols[i%4]:
                             if st.checkbox(ing, key=f"ing_{ing}"): selected_ings.append(ing)
-        
         col1, col2 = st.columns(2)
         with col1: find_btn = st.button("🧑‍🍳 Tarif Bul", use_container_width=True)
-        with col2: ai_btn = st.button("🤖 AI'dan İste", use_container_width=True, disabled=True) # AI chat özelliği kapalı
-
+        with col2: ai_btn = st.button("🤖 AI'dan İste", use_container_width=True, disabled=True)
         if find_btn and selected_ings:
             filtered = all_recipes_df.copy()
             for ing in selected_ings: filtered = filtered[filtered['malzemeler'].str.contains(ing.lower(), case=False, na=False)]
             display_recipe_cards_final(filtered)
 
     elif selected_page == "Yeni Tarif Ekle":
-        st.markdown("<h2>✨ Yeni Tarif Ekle (AI Asistan)</h2>", unsafe_allow_html=True)
+        st.markdown("<h2>✨ Yeni Tarif Ekle (Otomatik Mod)</h2>", unsafe_allow_html=True)
+        st.info("🚀 Sadece Instagram linkini yapıştır, gerisini bana bırak!")
+
         if 'ai_form_data' not in st.session_state: st.session_state.ai_form_data = {}
 
+        # --- YENİ EKLENEN KISIM: LINK GİRİŞ ALANI ---
         with st.container():
-            c1, c2 = st.columns([3, 1])
-            with c1: insta_caption = st.text_area("Instagram Açıklaması:", height=100)
-            with c2: 
+            col_link, col_btn = st.columns([3, 1])
+            with col_link:
+                target_url = st.text_input("Instagram Video Linki:", placeholder="https://instagram.com/reel/...")
+            with col_btn:
                 st.write(""); st.write("")
-                if st.button("✨ AYRIŞTIR", type="primary", use_container_width=True):
-                    if insta_caption:
-                        with st.spinner("Okunuyor..."):
-                            res = parse_recipe_with_ai(insta_caption)
-                            if res: st.session_state.ai_form_data = res; st.success("Tamam!")
-                            else: st.error("Hata")
+                if st.button("⚡ SİHRİ BAŞLAT", type="primary", use_container_width=True):
+                    if target_url:
+                        with st.status("Veriler işleniyor...", expanded=True) as status:
+                            # 1. Adım: API'den veriyi çek
+                            st.write("📡 Instagram'a bağlanılıyor...")
+                            insta_data, error = fetch_instagram_data_via_api(target_url)
+                            
+                            if error:
+                                status.update(label="Hata Oluştu!", state="error")
+                                st.error(f"Hata: {error}")
+                            else:
+                                st.write("✅ Video açıklaması ve kapak fotoğrafı alındı!")
+                                # 2. Adım: Gemini ile Analiz Et
+                                st.write("🧠 Yapay zeka tarifi okuyor...")
+                                ai_res = parse_recipe_with_ai(insta_data['caption'])
+                                
+                                if ai_res:
+                                    # Verileri birleştir (API'den gelen resim + AI'dan gelen metin)
+                                    ai_res['image_url'] = insta_data['image_url']
+                                    ai_res['insta_url'] = target_url
+                                    st.session_state.ai_form_data = ai_res
+                                    status.update(label="Başarılı! Tarif hazır.", state="complete")
+                                    st.balloons()
+                                else:
+                                    status.update(label="AI Analiz Hatası", state="error")
+                                    st.error("AI metni anlayamadı.")
+                    else:
+                        st.warning("Lütfen bir link yapıştırın.")
         
         st.write("---")
+        
+        # --- FORM (Otomatik Dolar) ---
         data = st.session_state.ai_form_data
         with st.form("add_form"):
             c1, c2 = st.columns(2)
             with c1:
                 baslik = st.text_input("Başlık", value=data.get('baslik', ''))
-                url = st.text_input("Instagram Linki")
-                thumb = st.text_input("Manuel Resim Linki")
+                url = st.text_input("Instagram Linki", value=data.get('insta_url', ''))
+                thumb = st.text_input("Kapak Fotoğrafı Linki (Otomatik)", value=data.get('image_url', ''))
+                
                 kats = ["Ana Yemek", "Tatlı", "Kahvaltılık", "Çorba", "Salata", "Atıştırmalık"]
-                kat = st.selectbox("Kategori", options=kats, index=kats.index(data.get('kategori')) if data.get('kategori') in kats else 0)
+                def_kat = 0
+                if data.get('kategori') in kats: def_kat = kats.index(data.get('kategori'))
+                kat = st.selectbox("Kategori", options=kats, index=def_kat)
+                
                 zors = ["Basit", "Orta", "Zor"]
-                zor = st.selectbox("Zorluk", options=zors, index=zors.index(data.get('zorluk')) if data.get('zorluk') in zors else 0)
-                sure = st.number_input("Süre", value=int(data.get('sure', 15)))
+                def_zor = 0
+                if data.get('zorluk') in zors: def_zor = zors.index(data.get('zorluk'))
+                zor = st.selectbox("Zorluk", options=zors, index=def_zor)
+                
+                sure = st.number_input("Süre (dk)", value=int(data.get('sure', 15)))
             with c2:
-                malz = st.text_area("Malzemeler", value=data.get('malzemeler', ''), height=250)
-                yap = st.text_area("Yapılışı", value=data.get('yapilisi', ''), height=250)
+                # Resim Önizleme
+                if data.get('image_url'):
+                    st.image(data.get('image_url'), caption="Bulunan Kapak Fotoğrafı", use_container_width=True)
+                malz = st.text_area("Malzemeler", value=data.get('malzemeler', ''), height=200)
+                yap = st.text_area("Yapılışı", value=data.get('yapilisi', ''), height=200)
             
             if st.form_submit_button("💾 Kaydet", use_container_width=True):
-                if baslik and (url or thumb):
-                    final_thumb = "https://images.unsplash.com/photo-1495521821757-a1efb6729352"
-                    if url: 
-                        s = get_instagram_thumbnail(url)
-                        if s: final_thumb = s
-                        elif thumb: final_thumb = thumb
-                    elif thumb: final_thumb = thumb
+                if baslik and url:
+                    # Fotoğraf yoksa varsayılan koy
+                    final_thumb = thumb if thumb else "https://images.unsplash.com/photo-1495521821757-a1efb6729352"
                     
                     row = [datetime.now().strftime("%Y%m%d%H%M%S"), url, baslik.title(), yap, malz, kat, datetime.now().strftime("%Y-%m-%d"), final_thumb, zor, sure, "HAYIR"]
                     worksheet.append_row(row, value_input_option='USER_ENTERED')
-                    st.success("Kaydedildi!"); st.balloons(); st.session_state.ai_form_data = {}; time.sleep(2); st.rerun()
-                else: st.warning("Başlık ve Link girin.")
+                    st.success("Kaydedildi!"); st.session_state.ai_form_data = {}; time.sleep(2); st.rerun()
+                else: st.warning("Başlık ve Link zorunludur.")
 
 # --- ROUTER ---
 if 'recipe_to_edit_id' not in st.session_state: st.session_state.recipe_to_edit_id = None
