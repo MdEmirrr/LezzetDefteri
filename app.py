@@ -13,7 +13,6 @@ import time
 # --- GÖRSEL AYARLAR VE STİL ---
 st.set_page_config(page_title="Ceren'in Defteri", layout="wide")
 
-# BU KISIM HATAYI ÇÖZEN KISIMDIR (st.markdown İLE BAŞLAMASI ŞART)
 st.markdown(f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap');
@@ -114,11 +113,9 @@ div[data-testid="stHeading"] {{ display: none; }}
 # --- GOOGLE SHEETS BAĞLANTISI ---
 try:
     scopes = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
-    # secrets.toml dosyasından okuyoruz
     creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=scopes)
     gc = gspread.authorize(creds)
     
-    # ID ile bağlanmayı deneyelim
     if "spreadsheet_id" in st.secrets:
         spreadsheet = gc.open_by_key(st.secrets["spreadsheet_id"])
     else:
@@ -128,7 +125,7 @@ try:
     
 except Exception as e:
     st.error(f"Veritabanı Bağlantı Hatası: {e}")
-    st.info("Lütfen secrets.toml dosyanızı ve Google Sheet paylaşım ayarlarını kontrol edin.")
+    st.info("Lütfen secrets.toml dosyanızı kontrol edin.")
     st.stop()
 
 # --- YARDIMCI FONKSİYONLAR ---
@@ -175,6 +172,47 @@ def build_sidebar(df):
     with st.sidebar:
         st.markdown("<h2>Filtrele</h2>", unsafe_allow_html=True)
         search_query = st.text_input("Tarif Adıyla Ara...", placeholder="Örn: Kek")
+        
+        # --- YENİ EKLENEN FOTOĞRAF TAMİR BUTONU ---
+        st.write("---")
+        with st.expander("🔧 Yönetici Paneli"):
+            st.info("Fotoğraflar görünmüyorsa bu butona basarak hepsini yenileyebilirsiniz.")
+            if st.button("Fotoğrafları Yenile / Tamir Et"):
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                
+                # Tüm verileri çek
+                all_data = worksheet.get_all_records()
+                total_rows = len(all_data)
+                updated_count = 0
+                
+                # Sütun başlıklarını bul
+                headers = [h.strip().lower().replace(' ', '_') for h in worksheet.row_values(1)]
+                url_idx = headers.index('url') + 1
+                thumb_idx = headers.index('thumbnail_url') + 1
+                
+                for i, row in enumerate(all_data):
+                    # Progress bar güncelle
+                    progress = (i + 1) / total_rows
+                    progress_bar.progress(progress)
+                    status_text.text(f"İşleniyor: {i+1}/{total_rows}")
+                    
+                    current_url = row.get('url', '')
+                    # Sadece Instagram linki varsa işlem yap
+                    if 'instagram.com' in current_url:
+                        new_thumb = get_instagram_thumbnail(current_url)
+                        if new_thumb:
+                            # Hücreyi güncelle (Satır numarası i+2 çünkü header var ve index 0'dan başlar)
+                            worksheet.update_cell(i + 2, thumb_idx, new_thumb)
+                            updated_count += 1
+                        time.sleep(1) # Instagram engellemesin diye azıcık bekle
+                
+                status_text.success(f"İşlem Tamamlandı! {updated_count} fotoğraf yenilendi.")
+                st.cache_data.clear()
+                time.sleep(2)
+                st.rerun()
+        # ------------------------------------------
+
         st.write("---")
         
         if not df.empty:
