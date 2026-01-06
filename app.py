@@ -3,11 +3,8 @@ import gspread
 import pandas as pd
 from google.oauth2.service_account import Credentials
 from datetime import datetime
-import requests
 import html
 from streamlit_option_menu import option_menu
-import json
-import re
 import time
 
 # --- SAYFA AYARLARI ---
@@ -21,7 +18,6 @@ st.markdown(f"""
 
 :root {{
     --primary-color: #8BC34A;
-    --primary-hover: #7CB342;
     --bg-color: #FAFAF9;
     --card-bg: #FFFFFF;
     --text-main: #2C3E50;
@@ -47,14 +43,13 @@ header h1 {{
 }}
 div[data-testid="stHeading"] {{ display: none; }}
 
-/* SIDEBAR BUTONLARI */
+/* SIDEBAR */
 .sidebar-btn {{
     width: 100%; border-radius: 12px; border: 2px solid var(--primary-color);
     background-color: white; color: var(--text-main); font-weight: 600;
     padding: 0.8rem; margin-bottom: 0.5rem; transition: all 0.3s;
     text-align: center; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
 }}
-.sidebar-btn:hover {{ background-color: var(--primary-color); color: white; transform: translateY(-2px); }}
 
 /* KART TASARIMI */
 .recipe-card-link {{ text-decoration: none; }}
@@ -84,10 +79,6 @@ div[data-testid="stHeading"] {{ display: none; }}
 }}
 
 /* DETAY SAYFASI */
-.detail-card {{ 
-    padding: 2rem; background: white; border-radius: 24px; 
-    box-shadow: var(--shadow); margin-bottom: 1rem;
-}}
 .detail-title {{ font-family: 'Dancing Script', cursive; font-size: 3.5rem; text-align: center; color: var(--text-main); }}
 
 /* FORM ELEMANLARI */
@@ -121,123 +112,6 @@ try:
 except Exception as e:
     st.error(f"Veritabanı Bağlantı Hatası: {e}")
     st.stop()
-
-# --- GELİŞMİŞ FOTOĞRAF ÇEKME (API DESTEKLİ) ---
-def get_instagram_data_robust(link):
-    """
-    Önce RapidAPI'yi dener (Kesin çözüm), 
-    Eğer API key yoksa veya bittiyse varsayılan resmi döndürür.
-    """
-    
-    # 1. API Anahtarını Kontrol Et
-    api_key = ""
-    if "instagram" in st.secrets and "api_key" in st.secrets["instagram"]:
-        api_key = st.secrets["instagram"]["api_key"]
-    
-    if not api_key:
-        # API yoksa direkt varsayılan döndür, boşuna zaman harcama
-        return None
-
-    # 2. Linkten Shortcode'u al (p/ABC1234/ kısmını bulur)
-    shortcode = None
-    match = re.search(r'(?:p|reel|tv)/([A-Za-z0-9_-]+)', link)
-    if match:
-        shortcode = match.group(1)
-    else:
-        return None
-
-    # 3. API'ye sor
-    url = "https://instagram-scraper-2022.p.rapidapi.com/ig/post_details/"
-    querystring = {"shortcode": shortcode}
-    headers = {
-        "X-RapidAPI-Key": api_key,
-        "X-RapidAPI-Host": "instagram-scraper-2022.p.rapidapi.com"
-    }
-
-    try:
-        # İstek at
-        response = requests.get(url, headers=headers, params=querystring, timeout=10)
-        if response.status_code == 200:
-            data = response.json()
-            # Fotoğrafı bulmaya çalış
-            try:
-                # Carousel (Kaydırmalı post) ise ilki
-                if 'carousel_media' in data.get('data', {}):
-                    return data['data']['carousel_media'][0]['image_versions2']['candidates'][0]['url']
-                # Tekli post/reel ise
-                else:
-                    return data['data']['image_versions2']['candidates'][0]['url']
-            except:
-                pass
-    except Exception:
-        pass
-    
-    return None
-
-def refresh_photos():
-    """Tüm fotoğrafları yeniler (Hem tarif hem etkinlik)"""
-    # İlerleme çubuğu
-    progress_bar = st.progress(0)
-    status = st.empty()
-    status.info("Fotoğraflar taranıyor... Lütfen bekleyin.")
-    
-    # 1. Tarifler
-    data = worksheet_recipes.get_all_records()
-    head = [h.strip().lower() for h in worksheet_recipes.row_values(1)]
-    thumb_idx = head.index('thumbnail_url') + 1
-    
-    count = 0
-    total_ops = len(data)
-    
-    if worksheet_events:
-        total_ops += len(worksheet_events.get_all_records())
-
-    # Tarif Döngüsü
-    for i, row in enumerate(data):
-        # Sadece Instagram linki varsa ve fotoğraf yoksa veya eski linkse dene
-        current_thumb = row.get('thumbnail_url', '')
-        
-        # Eğer fotoğraf yoksa veya link kırılmışsa (cdninstagram içeriyorsa genelde kırılır)
-        if 'instagram.com' in row.get('url', ''):
-            # API ile taze link al
-            new_img = get_instagram_data_robust(row['url'])
-            
-            # Eğer API bulamazsa, şık bir varsayılan resim koyalım ki BOŞ GÖRÜNMESİN
-            if not new_img:
-               new_img = "https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=1000"
-            
-            # Her türlü güncelle (Kırık link yerine sağlam veya default gelsin)
-            worksheet_recipes.update_cell(i + 2, thumb_idx, new_img)
-            time.sleep(0.5) # API'yi boğmamak için bekleme
-
-        progress_bar.progress((i+1) / (total_ops + 1))
-        count += 1
-
-    # 2. Etkinlikler
-    if worksheet_events:
-        data_ev = worksheet_events.get_all_records()
-        head_ev = [h.strip().lower() for h in worksheet_events.row_values(1)]
-        thumb_idx_ev = head_ev.index('thumbnail_url') + 1
-        
-        for j, row in enumerate(data_ev):
-            if 'instagram.com' in row.get('url', ''):
-                new_img = get_instagram_data_robust(row['url'])
-                
-                # Etkinlik için farklı varsayılan resim
-                if not new_img:
-                    new_img = "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=1000"
-                
-                worksheet_events.update_cell(j + 2, thumb_idx_ev, new_img)
-                time.sleep(0.5)
-            
-            # İlerlemeyi güncelle
-            current_progress = (len(data) + j + 1) / (total_ops + 1)
-            progress_bar.progress(min(current_progress, 1.0))
-            
-    status.success("İşlem Tamamlandı! Sayfa yenileniyor...")
-    st.cache_data.clear()
-    time.sleep(2)
-    st.rerun()
 
 # --- SIDEBAR TASARIMI ---
 def build_sidebar():
@@ -276,13 +150,6 @@ def build_sidebar():
             cats = sorted(df_e['kategori'].unique())
             filter_cat = st.multiselect("Etkinlik Türü", cats)
 
-        # Admin Paneli (En Altta)
-        st.markdown("<div style='margin-top: 50px;'></div>", unsafe_allow_html=True)
-        with st.expander("⚙️ Yönetici & Ayarlar"):
-            st.caption("Fotoğraflar görünmüyorsa yenileyin.")
-            if st.button("🔄 Fotoğrafları Tamir Et", use_container_width=True):
-                refresh_photos()
-
     return search, filter_cat, filter_time
 
 # --- VERİ ÇEKME FONKSİYONLARI ---
@@ -318,8 +185,7 @@ def display_cards(df, type="recipe"):
     for i, row in enumerate(df.to_dict('records')):
         with cols[i % 4]:
             img = row.get('thumbnail_url')
-            # Eğer resim hücresi boşsa varsayılanı kullan
-            if not img: img = default_img
+            if not img or len(str(img)) < 5: img = default_img
             
             title = html.escape(str(row.get('baslik', '')).title())
             
@@ -355,19 +221,26 @@ def show_detail(id, type):
     df = fetch_data("recipes" if type == "recipe" else "events")
     row = df[df['id'].astype(str) == str(id)].iloc[0]
     
-    if st.button("⬅️ Geri Dön"): st.query_params.clear(); st.rerun()
-    
+    col_back, col_edit, col_empty = st.columns([1, 1, 6])
+    with col_back:
+        if st.button("⬅️ Geri"): st.query_params.clear(); st.rerun()
+    with col_edit:
+        if st.button("✏️ Düzenle"):
+            st.session_state.edit_id = id
+            st.session_state.edit_type = type
+            st.rerun()
+
     st.markdown(f"<div class='detail-title'>{row['baslik'].title()}</div>", unsafe_allow_html=True)
     
-    # Detay sayfası varsayılan resimleri
     def_img = "https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=1000"
     img_src = row.get('thumbnail_url', '')
-    if not img_src: img_src = def_img
+    if not img_src or len(str(img_src)) < 5: img_src = def_img
     
     col1, col2 = st.columns([1, 1], gap="large")
     with col1:
         st.image(img_src, use_column_width=True)
-        st.markdown(f"### 🔗 [Instagram'da Görüntüle]({row['url']})")
+        if row.get('url'):
+            st.markdown(f"### 🔗 [Instagram'da Görüntüle]({row['url']})")
         
         if type == "recipe":
             st.info(f"⏱️ Süre: {row['hazirlanma_suresi']} dk | 🔥 Zorluk: {row['yemek_zorlugu']}")
@@ -400,59 +273,115 @@ def page_add_recipe():
     with st.form("add_recipe"):
         c1, c2 = st.columns(2)
         with c1:
-            url = st.text_input("Instagram Linki")
-            baslik = st.text_input("Başlık")
+            baslik = st.text_input("Başlık *")
+            url = st.text_input("Reel/Video Linki (Varsa)")
+            
+            st.markdown("---")
+            st.caption("👇 Google Görseller'den beğendiğin fotoğrafın 'Resim Adresini' kopyalayıp buraya yapıştır.")
+            thumb = st.text_input("Kapak Fotoğrafı Linki")
+            
             kat = st.selectbox("Kategori", ["Ana Yemek", "Tatlı", "Kahvaltılık", "Çorba", "Salata", "Atıştırmalık"])
             zorluk = st.select_slider("Zorluk", ["Basit", "Orta", "Zor"])
             sure = st.number_input("Süre (dk)", 30)
+            
         with c2:
             malz = st.text_area("Malzemeler", height=150)
             yap = st.text_area("Yapılışı", height=150)
+            
+            if thumb:
+                st.image(thumb, caption="Önizleme", width=300)
         
         if st.form_submit_button("Kaydet", use_container_width=True):
-            if not url or not baslik: st.warning("Link ve Başlık zorunludur."); return
+            if not baslik: st.warning("Başlık zorunludur."); return
             
             with st.spinner("Kaydediliyor..."):
-                img = get_instagram_data_robust(url) or "https://images.unsplash.com/photo-1495521821757-a1efb6729352"
-                row = [datetime.now().strftime("%Y%m%d%H%M%S"), url, baslik, yap, malz, kat, datetime.now().strftime("%Y-%m-%d"), img, zorluk, sure, "HAYIR"]
+                final_img = thumb if thumb else "https://images.unsplash.com/photo-1495521821757-a1efb6729352"
+                row = [datetime.now().strftime("%Y%m%d%H%M%S"), url, baslik, yap, malz, kat, datetime.now().strftime("%Y-%m-%d"), final_img, zorluk, sure, "HAYIR"]
                 worksheet_recipes.append_row(row)
                 st.cache_data.clear(); st.success("Eklendi!"); time.sleep(1); st.session_state.page="home"; st.rerun()
 
 def page_add_event():
     if not worksheet_events:
-        st.error("⚠️ Google Sheet dosyanızda 'Etkinlikler' sayfası bulunamadı. Lütfen oluşturun.")
+        st.error("⚠️ 'Etkinlikler' sayfası veritabanında bulunamadı.")
         return
 
     st.markdown("## 🎉 Yeni Etkinlik / Mekan Ekle")
     with st.form("add_event"):
         c1, c2 = st.columns(2)
         with c1:
-            url = st.text_input("Instagram Linki (Reel/Post)")
-            baslik = st.text_input("Etkinlik/Mekan Adı")
+            baslik = st.text_input("Etkinlik/Mekan Adı *")
+            url = st.text_input("Instagram Post Linki (Varsa)")
+            
+            st.markdown("---")
+            st.caption("👇 Google Görseller'den veya HizliResim'den fotoğraf linkini yapıştır.")
+            thumb = st.text_input("Kapak Fotoğrafı Linki")
+            
             konum = st.text_input("Konum (Semt/Şehir)")
             kat = st.selectbox("Tür", ["Mekan Keşfi", "Konser", "Gezi", "Tiyatro", "Sergi", "Diğer"])
         with c2:
             aciklama = st.text_area("Açıklama / Notlar", height=150)
             puan = st.slider("Puanım", 1, 10, 8)
             tarih_inp = st.date_input("Gidilen Tarih")
+            
+            if thumb:
+                st.image(thumb, caption="Önizleme", width=300)
         
         if st.form_submit_button("Kaydet", use_container_width=True):
-            if not url or not baslik: st.warning("Link ve Başlık zorunludur."); return
+            if not baslik: st.warning("Başlık zorunludur."); return
             
             with st.spinner("Kaydediliyor..."):
-                img = get_instagram_data_robust(url) or "https://images.unsplash.com/photo-1492684223066-81342ee5ff30"
-                row = [datetime.now().strftime("%Y%m%d%H%M%S"), url, baslik, aciklama, konum, kat, str(tarih_inp), img, puan]
+                final_img = thumb if thumb else "https://images.unsplash.com/photo-1492684223066-81342ee5ff30"
+                row = [datetime.now().strftime("%Y%m%d%H%M%S"), url, baslik, aciklama, konum, kat, str(tarih_inp), final_img, puan]
                 worksheet_events.append_row(row)
                 st.cache_data.clear(); st.success("Eklendi!"); time.sleep(1); st.session_state.page="home"; st.rerun()
+
+# --- DÜZENLEME SAYFASI ---
+def page_edit():
+    id = st.session_state.edit_id
+    type = st.session_state.edit_type
+    
+    ws = worksheet_recipes if type == "recipe" else worksheet_events
+    df = fetch_data("recipes" if type == "recipe" else "events")
+    row = df[df['id'].astype(str) == str(id)].iloc[0]
+
+    st.markdown(f"## ✏️ Düzenle: {row['baslik']}")
+    
+    with st.form("edit_form"):
+        new_baslik = st.text_input("Başlık", value=row['baslik'])
+        new_thumb = st.text_input("Fotoğraf Linki", value=row.get('thumbnail_url', ''))
+        new_url = st.text_input("Instagram Linki", value=row.get('url', ''))
+        
+        if st.form_submit_button("Değişiklikleri Kaydet"):
+            cell = ws.find(str(id))
+            head = [h.strip().lower().replace(' ', '_') for h in ws.row_values(1)]
+            
+            ws.update_cell(cell.row, head.index('baslik')+1, new_baslik)
+            ws.update_cell(cell.row, head.index('thumbnail_url')+1, new_thumb)
+            ws.update_cell(cell.row, head.index('url')+1, new_url)
+            
+            st.success("Güncellendi!")
+            st.cache_data.clear()
+            st.session_state.edit_id = None
+            st.rerun()
+
+    if st.button("❌ İptal"):
+        st.session_state.edit_id = None
+        st.rerun()
 
 # --- ANA UYGULAMA ---
 def main():
     if 'page' not in st.session_state: st.session_state.page = "home"
+    if 'edit_id' not in st.session_state: st.session_state.edit_id = None
     
-    # Query Params Kontrolü (Linkten geliyorsa)
+    # Query Params Kontrolü
     qp = st.query_params
-    if "id" in qp and "type" in qp:
+    if "id" in qp and "type" in qp and st.session_state.edit_id is None:
         show_detail(qp["id"], qp["type"])
+        return
+
+    # Düzenleme Modu
+    if st.session_state.edit_id:
+        page_edit()
         return
 
     # Sayfa Yönlendirmeleri
@@ -465,10 +394,9 @@ def main():
         page_add_event()
         return
 
-    # Ana Sayfa Akışı
+    # Ana Sayfa
     st.markdown("<header><h1>Ceren'in Defteri</h1></header>", unsafe_allow_html=True)
     
-    # Menü ve Filtreler
     search, f_cat, f_time = build_sidebar()
     
     selected = option_menu(None, ["Tarifler", "Etkinlikler", "Favoriler"], 
@@ -476,7 +404,7 @@ def main():
         menu_icon="cast", default_index=0, orientation="horizontal",
         styles={"nav-link-selected": {"background-color": "#8BC34A"}})
     
-    st.session_state.active_tab = selected # Filtreler için aktif sekmeyi kaydet
+    st.session_state.active_tab = selected
 
     if selected == "Tarifler":
         df = fetch_data("recipes")
@@ -488,7 +416,7 @@ def main():
             
     elif selected == "Etkinlikler":
         if not worksheet_events:
-            st.warning("Henüz etkinlik veritabanı oluşturulmamış. Google Sheet'te 'Etkinlikler' sayfasını açın.")
+            st.warning("Veritabanında 'Etkinlikler' sayfası yok.")
         else:
             df = fetch_data("events")
             if not df.empty:
@@ -496,7 +424,7 @@ def main():
                 if f_cat: df = df[df['kategori'].isin(f_cat)]
                 display_cards(df.sort_values('id', ascending=False), "event")
             else:
-                st.info("Henüz hiç etkinlik eklenmemiş. Yanda '🎉 Etkinlik' butonuna basarak ekle!")
+                st.info("Etkinlik eklemek için yandaki butonu kullan!")
                 
     elif selected == "Favoriler":
         df = fetch_data("recipes")
