@@ -10,107 +10,97 @@ import json
 import re
 import time
 
-# --- GÖRSEL AYARLAR VE STİL ---
-st.set_page_config(page_title="Ceren'in Defteri", layout="wide")
+# --- SAYFA AYARLARI ---
+st.set_page_config(page_title="Ceren'in Defteri", layout="wide", page_icon="🌸")
 
+# --- CSS TASARIM (PROFESYONEL GÖRÜNÜM) ---
 st.markdown(f"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');
 
 :root {{
     --primary-color: #8BC34A;
-    --background-cream: #FDF5E6;
-    --card-bg-color: #FFFFFF;
-    --text-dark: #36454F;
-    --text-light: #6A7B8E;
-    --border-light: #E0E0E0;
-    --link-color: #2196F3;
+    --primary-hover: #7CB342;
+    --bg-color: #FAFAF9; /* Daha modern kırık beyaz */
+    --card-bg: #FFFFFF;
+    --text-main: #2C3E50;
+    --text-sub: #7F8C8D;
+    --shadow: 0 4px 20px rgba(0,0,0,0.06);
+    --radius: 16px;
 }}
 
-.stApp {{ background-color: var(--background-cream); font-family: 'Quicksand', sans-serif; }}
+.stApp {{ background-color: var(--bg-color); font-family: 'Plus Jakarta Sans', sans-serif; }}
 div[data-testid="stAppViewContainer"] > .main {{ padding-top: 0rem; }}
 
+/* HEADER */
 header {{
-    background-image: linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(0,0,0,0.1)),
-                      url("https://plus.unsplash.com/premium_photo-1663099777846-62e0c092ce0b?q=80&w=1349&auto=format&fit=crop");
-    background-size: cover;
-    background-position: center 35%;
-    padding: 2.5rem 1rem;
-    text-align: center;
-    margin-bottom: 2rem;
+    background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.1)), url("https://images.unsplash.com/photo-1490818387583-1baba5e638af?q=80&w=1932&auto=format&fit=crop");
+    background-size: cover; background-position: center;
+    padding: 3rem 1rem; text-align: center; margin-bottom: 2rem;
+    border-radius: 0 0 24px 24px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
 }}
 header h1 {{
-    font-family: 'Dancing Script', cursive !important;
-    color: var(--card-bg-color) !important;
-    font-size: 4rem;
-    text-shadow: 2px 2px 5px rgba(0,0,0,0.5);
-    margin: 0;
+    font-family: 'Dancing Script', cursive !important; color: white !important;
+    font-size: 4.5rem; margin: 0; text-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }}
 div[data-testid="stHeading"] {{ display: none; }}
 
+/* SIDEBAR BUTONLARI */
+.sidebar-btn {{
+    width: 100%; border-radius: 12px; border: 2px solid var(--primary-color);
+    background-color: white; color: var(--text-main); font-weight: 600;
+    padding: 0.8rem; margin-bottom: 0.5rem; transition: all 0.3s;
+    text-align: center; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+}}
+.sidebar-btn:hover {{ background-color: var(--primary-color); color: white; transform: translateY(-2px); }}
+
+/* KART TASARIMI */
 .recipe-card-link {{ text-decoration: none; }}
 .recipe-card {{ 
-    background-color: var(--card-bg-color) !important; 
-    border-radius: 12px; border: 1px solid var(--border-light); 
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
-    margin-bottom: 1.5rem; overflow: hidden; 
-    transition: all 0.3s ease; 
-    height: 440px; 
-    display: flex; flex-direction: column; 
+    background-color: var(--card-bg); border-radius: var(--radius);
+    box-shadow: var(--shadow); border: 1px solid #F0F0F0;
+    margin-bottom: 1.5rem; overflow: hidden; transition: all 0.3s ease;
+    height: 420px; display: flex; flex-direction: column; 
 }}
-.recipe-card:hover {{ transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }}
-.card-image {{ 
-    width: 100%; 
-    height: 280px; 
-    object-fit: cover; 
-    display: block; 
-    flex-shrink: 0; 
-}}
-.card-body {{ padding: 1rem; flex-grow: 1; display: flex; flex-direction: column; }}
+.recipe-card:hover {{ transform: translateY(-8px); box-shadow: 0 15px 30px rgba(0,0,0,0.1); }}
+.card-image {{ width: 100%; height: 250px; object-fit: cover; }}
+.card-body {{ padding: 1.2rem; flex-grow: 1; display: flex; flex-direction: column; }}
 .card-body h3 {{ 
-    font-family: 'Quicksand', sans-serif; 
-    font-weight: 700; font-size: 1.1rem; color: var(--text-dark) !important; margin: 0 0 0.5rem 0; 
-    line-height: 1.3; 
-    height: auto; 
-    min-height: 2.6em; 
-    overflow: hidden; text-overflow: ellipsis; display: -webkit-box; 
-    -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 1.1rem;
+    color: var(--text-main); margin: 0 0 0.5rem 0; line-height: 1.4;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}}
+.card-tag {{
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    background-color: #EEF7E8; color: var(--primary-color);
+    font-size: 0.75rem; font-weight: 600; margin-bottom: 8px; width: fit-content;
 }}
 .card-metadata {{ 
-    display: flex; flex-direction: row; justify-content: space-between; 
-    align-items: center; font-size: 0.9rem; 
-    color: var(--text-light); 
-    margin-top: auto; padding-top: 0.75rem; 
-    border-top: 1px solid var(--border-light);
-}}
-.stButton > button {{
-    background-color: var(--primary-color);
-    color: white;
-    border-radius: 8px;
-    border: none;
-    padding: 0.7rem 1.2rem;
-    font-weight: 600;
-}}
-.stButton > button:hover {{ background-color: #7CB342; }}
-
-/* Form stilleri */
-.stTextInput>div>div>input, .stSelectbox>div>div, .stTextArea>div>div>textarea, .stNumberInput>div>div>input {{
-    background-color: var(--card-bg-color);
-    border: 1px solid var(--border-light);
-    border-radius: 8px;
-    color: var(--text-dark);
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 0.85rem; color: var(--text-sub); margin-top: auto; padding-top: 1rem;
+    border-top: 1px solid #F5F5F5;
 }}
 
-.detail-page-title {{ font-family: 'Dancing Script', cursive !important; font-size: 3.5rem; text-align: center; margin-bottom: 1rem; color: var(--text-dark); }}
-.detail-card {{ padding: 1.5rem; height: 100%; background-color: var(--card-bg-color); border-radius: 12px; border: 1px solid var(--border-light); }}
-.detail-card img {{ width: 100%; border-radius: 8px; object-fit: cover; height: 450px; }}
-.detail-card h5 {{ border-bottom: 2px solid var(--border-light); padding-bottom: 8px; margin-top: 0; color: var(--text-dark); }}
-.detail-card-text {{ white-space: pre-wrap; font-size: 0.9rem; line-height: 1.7; color: var(--text-dark); }}
+/* DETAY SAYFASI */
+.detail-card {{ 
+    padding: 2rem; background: white; border-radius: 24px; 
+    box-shadow: var(--shadow); margin-bottom: 1rem;
+}}
+.detail-title {{ font-family: 'Dancing Script', cursive; font-size: 3.5rem; text-align: center; color: var(--text-main); }}
+
+/* FORM ELEMANLARI */
+.stTextInput>div>div>input, .stSelectbox>div>div, .stTextArea>div>div>textarea {{
+    border-radius: 12px; border: 1px solid #E0E0E0; padding: 0.5rem;
+}}
+.stButton>button {{
+    border-radius: 12px; font-weight: 600; padding: 0.5rem 2rem;
+}}
 </style>
 """, unsafe_allow_html=True)
 
-# --- GOOGLE SHEETS BAĞLANTISI ---
+# --- VERİTABANI BAĞLANTISI ---
 try:
     scopes = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
     creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=scopes)
@@ -120,29 +110,27 @@ try:
         spreadsheet = gc.open_by_key(st.secrets["spreadsheet_id"])
     else:
         spreadsheet = gc.open("Lezzet Defteri Veritabanı")
-        
-    worksheet = spreadsheet.worksheet("Sayfa1")
     
+    worksheet_recipes = spreadsheet.worksheet("Sayfa1")
+    
+    # Etkinlikler sayfası yoksa hata vermemesi için kontrol
+    try:
+        worksheet_events = spreadsheet.worksheet("Etkinlikler")
+    except:
+        worksheet_events = None
+
 except Exception as e:
     st.error(f"Veritabanı Bağlantı Hatası: {e}")
-    st.info("Lütfen secrets.toml dosyanızı kontrol edin.")
     st.stop()
 
-# --- YARDIMCI FONKSİYONLAR ---
-CATEGORIZED_INGREDIENTS = {
-    "Süt & Süt Ürünleri 🥛": ["Süt", "Yoğurt", "Peynir", "Kaşar peyniri", "Krema", "Tereyağı", "Yumurta"],
-    "Et, Tavuk & Balık 🥩": ["Kıyma", "Kuşbaşı et", "Tavuk", "Sucuk", "Balık"],
-    "Sebzeler 🥕": ["Soğan", "Sarımsak", "Domates", "Biber", "Patates", "Havuç", "Patlıcan", "Kabak", "Ispanak", "Marul", "Salatalık", "Limon", "Mantar"],
-    "Bakliyat & Tahıl 🍚": ["Un", "Pirinç", "Bulgur", "Makarna", "Mercimek", "Nohut", "Fasulye", "Maya"],
-    "Temel Gıdalar & Soslar 🧂": ["Şeker", "Tuz", "Sıvı yağ", "Zeytinyağı", "Salça", "Sirke"],
-    "Kuruyemiş & Tatlı 🍫": ["Ceviz", "Fındık", "Badem", "Çikolata", "Kakao", "Bal"],
-    "Baharatlar 🌿": ["Karabiber", "Nane", "Kekik", "Pul biber", "Kimyon", "Toz biber"]
-}
-
+# --- FONKSİYONLAR ---
 @st.cache_data(ttl=600)
-def fetch_all_recipes():
+def fetch_data(sheet_type="recipes"):
     try:
-        records = worksheet.get_all_records()
+        ws = worksheet_recipes if sheet_type == "recipes" else worksheet_events
+        if not ws: return pd.DataFrame()
+        
+        records = ws.get_all_records()
         df = pd.DataFrame(records)
         if not df.empty:
             df.columns = [col.strip().lower().replace(' ', '_') for col in df.columns]
@@ -150,319 +138,289 @@ def fetch_all_recipes():
             if 'hazirlanma_suresi' in df.columns:
                 df['hazirlanma_suresi'] = pd.to_numeric(df['hazirlanma_suresi'], errors='coerce').fillna(0).astype(int)
         return df
-    except Exception as e:
-        st.error(f"Veri okuma hatası: {e}")
-        return pd.DataFrame()
+    except Exception: return pd.DataFrame()
 
 def get_instagram_thumbnail(url):
     try:
-        headers = {'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 13_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1.1 Mobile/15E148 Safari/604.1'}
+        headers = {'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 13_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko)'}
         response = requests.get(url, headers=headers, timeout=10)
-        html_text = response.text
-        script_tag = re.search(r'<script type="application/ld\+json">(.+?)</script>', html_text)
+        script_tag = re.search(r'<script type="application/ld\+json">(.+?)</script>', response.text)
         if script_tag:
-            json_data = json.loads(script_tag.group(1))
-            thumbnail_url = json_data.get('thumbnailUrl') or json_data.get('image')
-            if thumbnail_url: return thumbnail_url
-    except Exception: 
-        pass
+            data = json.loads(script_tag.group(1))
+            return data.get('thumbnailUrl') or data.get('image')
+    except: pass
     return None
 
-def build_sidebar(df):
+def refresh_photos():
+    """Tüm fotoğrafları yeniler (Hem tarif hem etkinlik)"""
+    st.info("Fotoğraflar taranıyor...")
+    progress = st.progress(0)
+    
+    # 1. Tarifler
+    data = worksheet_recipes.get_all_records()
+    head = [h.strip().lower() for h in worksheet_recipes.row_values(1)]
+    thumb_idx = head.index('thumbnail_url') + 1
+    
+    for i, row in enumerate(data):
+        if 'instagram.com' in row.get('url', ''):
+            new_img = get_instagram_thumbnail(row['url'])
+            if new_img: worksheet_recipes.update_cell(i + 2, thumb_idx, new_img)
+        progress.progress((i+1) / (len(data)*2))
+        time.sleep(0.5)
+
+    # 2. Etkinlikler
+    if worksheet_events:
+        data_ev = worksheet_events.get_all_records()
+        head_ev = [h.strip().lower() for h in worksheet_events.row_values(1)]
+        thumb_idx_ev = head_ev.index('thumbnail_url') + 1
+        
+        for i, row in enumerate(data_ev):
+            if 'instagram.com' in row.get('url', ''):
+                new_img = get_instagram_thumbnail(row['url'])
+                if new_img: worksheet_events.update_cell(i + 2, thumb_idx_ev, new_img)
+            progress.progress(0.5 + (i+1)/(len(data_ev)*2))
+            time.sleep(0.5)
+            
+    st.success("Tüm fotoğraflar yenilendi!")
+    st.cache_data.clear()
+    time.sleep(1)
+    st.rerun()
+
+# --- SIDEBAR TASARIMI ---
+def build_sidebar():
     with st.sidebar:
-        st.markdown("<h2>Filtrele</h2>", unsafe_allow_html=True)
-        search_query = st.text_input("Tarif Adıyla Ara...", placeholder="Örn: Kek")
+        st.write("### 📌 Hızlı Ekle")
         
-        # --- YENİ EKLENEN FOTOĞRAF TAMİR BUTONU ---
-        st.write("---")
-        with st.expander("🔧 Yönetici Paneli"):
-            st.info("Fotoğraflar görünmüyorsa bu butona basarak hepsini yenileyebilirsiniz.")
-            if st.button("Fotoğrafları Yenile / Tamir Et"):
-                progress_bar = st.progress(0)
-                status_text = st.empty()
-                
-                # Tüm verileri çek
-                all_data = worksheet.get_all_records()
-                total_rows = len(all_data)
-                updated_count = 0
-                
-                # Sütun başlıklarını bul
-                headers = [h.strip().lower().replace(' ', '_') for h in worksheet.row_values(1)]
-                url_idx = headers.index('url') + 1
-                thumb_idx = headers.index('thumbnail_url') + 1
-                
-                for i, row in enumerate(all_data):
-                    # Progress bar güncelle
-                    progress = (i + 1) / total_rows
-                    progress_bar.progress(progress)
-                    status_text.text(f"İşleniyor: {i+1}/{total_rows}")
-                    
-                    current_url = row.get('url', '')
-                    # Sadece Instagram linki varsa işlem yap
-                    if 'instagram.com' in current_url:
-                        new_thumb = get_instagram_thumbnail(current_url)
-                        if new_thumb:
-                            # Hücreyi güncelle (Satır numarası i+2 çünkü header var ve index 0'dan başlar)
-                            worksheet.update_cell(i + 2, thumb_idx, new_thumb)
-                            updated_count += 1
-                        time.sleep(1) # Instagram engellemesin diye azıcık bekle
-                
-                status_text.success(f"İşlem Tamamlandı! {updated_count} fotoğraf yenilendi.")
-                st.cache_data.clear()
-                time.sleep(2)
-                st.rerun()
-        # ------------------------------------------
+        c1, c2 = st.columns(2)
+        add_recipe_clk = c1.button("🍳 Tarif", use_container_width=True, type="primary")
+        add_event_clk = c2.button("🎉 Etkinlik", use_container_width=True, type="primary")
+        
+        if add_recipe_clk: st.session_state.page = "add_recipe"; st.rerun()
+        if add_event_clk: st.session_state.page = "add_event"; st.rerun()
 
         st.write("---")
+        st.write("### 🔍 Filtrele")
         
-        if not df.empty:
-            all_categories = sorted(df['kategori'].unique())
-            selected_categories = st.multiselect("Yemek Türü", options=all_categories)
+        # Sayfaya göre filtre göster
+        df_r = fetch_data("recipes")
+        df_e = fetch_data("events")
+        
+        search = st.text_input("Ara...", placeholder="Kek, Konser, İzmir...")
+        
+        filter_cat = []
+        filter_time = (0, 120)
+        
+        # Eğer etkinlik sayfasındaysak etkinlik kategorileri, değilse yemek
+        active_tab = st.session_state.get('active_tab', 'Tarifler')
+        
+        if active_tab == 'Tarifler' and not df_r.empty:
+            cats = sorted(df_r['kategori'].unique())
+            filter_cat = st.multiselect("Kategori", cats)
+            min_t, max_t = int(df_r['hazirlanma_suresi'].min()), int(df_r['hazirlanma_suresi'].max())
+            filter_time = st.slider("Süre (dk)", min_t, max_t if max_t > 0 else 120, (min_t, max_t if max_t > 0 else 120))
             
-            min_süre = int(df['hazirlanma_suresi'].min())
-            max_süre = int(df['hazirlanma_suresi'].max()) if df['hazirlanma_suresi'].max() > 0 else 120
-            selected_süre_aralığı = st.slider("Hazırlanma Süresi (dk)", min_süre, max_süre, (min_süre, max_süre))
-        else:
-            selected_categories = []
-            selected_süre_aralığı = (0, 120)
-    
-    if df.empty: return df
-    
-    filtered_df = df.copy()
-    if search_query:
-        filtered_df = filtered_df[filtered_df['baslik'].str.contains(search_query, case=False, na=False)]
-    if selected_categories:
-        filtered_df = filtered_df[filtered_df['kategori'].isin(selected_categories)]
-        
-    min_secilen, max_secilen = selected_süre_aralığı
-    if min_secilen > min_süre or max_secilen < max_süre:
-        filtered_df = filtered_df[filtered_df['hazirlanma_suresi'].between(min_secilen, max_secilen)]
-    return filtered_df
+        elif active_tab == 'Etkinlikler' and not df_e.empty:
+            cats = sorted(df_e['kategori'].unique())
+            filter_cat = st.multiselect("Etkinlik Türü", cats)
 
-def display_recipe_cards_final(df):
+        # Admin Paneli (En Altta)
+        st.markdown("<div style='margin-top: 50px;'></div>", unsafe_allow_html=True)
+        with st.expander("⚙️ Yönetici & Ayarlar"):
+            st.caption("Fotoğraflar görünmüyorsa yenileyin.")
+            if st.button("🔄 Fotoğrafları Tamir Et", use_container_width=True):
+                refresh_photos()
+
+    return search, filter_cat, filter_time
+
+# --- KART GÖSTERİMİ ---
+def display_cards(df, type="recipe"):
     if df.empty:
-        st.warning("Bu kriterlere uygun tarif bulunamadı.")
+        st.info("Henüz kayıt yok veya filtreye uygun sonuç bulunamadı.")
         return
-    st.markdown(f"**{len(df)}** adet tarif bulundu.")
-    st.write("---")
-    
-    default_img = "https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=1000&auto=format&fit=crop"
-    
+
     cols = st.columns(4)
-    for i, recipe in enumerate(df.to_dict('records')):
-        col = cols[i % 4]
-        with col:
-            img_src = recipe['thumbnail_url'] if recipe['thumbnail_url'] else default_img
+    default_img = "https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=1000" if type == "recipe" else "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=1000"
+
+    for i, row in enumerate(df.to_dict('records')):
+        with cols[i % 4]:
+            img = row.get('thumbnail_url') if row.get('thumbnail_url') else default_img
+            title = html.escape(str(row.get('baslik', '')).title())
             
+            # Kart Detayları
+            if type == "recipe":
+                meta = f"""
+                <span>⏱️ {row.get('hazirlanma_suresi',0)} dk</span>
+                <span>🔥 {row.get('yemek_zorlugu','N/A')}</span>
+                """
+                badge = row.get('kategori', 'Genel')
+            else:
+                meta = f"""
+                <span>📍 {row.get('konum','Unknown')}</span>
+                <span>⭐ {row.get('puan','-')}/10</span>
+                """
+                badge = row.get('kategori', 'Etkinlik')
+
             st.markdown(f"""
-            <a href="/?id={recipe['id']}" target="_self" class="recipe-card-link">
+            <a href="/?id={row['id']}&type={type}" target="_self" class="recipe-card-link">
                 <div class="recipe-card">
-                    <img src="{img_src}" class="card-image" onerror="this.onerror=null; this.src='{default_img}';">
+                    <img src="{img}" class="card-image" onerror="this.src='{default_img}'">
                     <div class="card-body">
-                        <h3>{html.escape(str(recipe.get('baslik','')).title())}</h3>
-                        <div class="card-metadata">
-                            <span><b>{recipe.get('yemek_zorlugu', 'N/A')}</b></span>
-                            <span><b>{recipe.get('hazirlanma_suresi', 0)} dk</b></span>
-                        </div>
+                        <div class="card-tag">{badge}</div>
+                        <h3>{title}</h3>
+                        <div class="card-metadata">{meta}</div>
                     </div>
                 </div>
-            </a>""", unsafe_allow_html=True)
+            </a>
+            """, unsafe_allow_html=True)
 
-def show_recipe_detail(recipe_id, df):
-    recipe_df = df[df['id'].astype(str) == str(recipe_id)]
-    if recipe_df.empty: st.error("Aradığınız tarif bulunamadı."); st.stop()
-    recipe = recipe_df.iloc[0]
+# --- DETAY SAYFALARI ---
+def show_detail(id, type):
+    df = fetch_data("recipes" if type == "recipe" else "events")
+    row = df[df['id'].astype(str) == str(id)].iloc[0]
     
-    if st.button("⬅️ Tüm Tariflere Geri Dön"):
-        st.query_params.clear(); st.rerun()
-
-    st.markdown(f"<h1 class='detail-page-title'>{recipe['baslik'].title()}</h1>", unsafe_allow_html=True)
-    st.markdown("---")
+    if st.button("⬅️ Geri Dön"): st.query_params.clear(); st.rerun()
     
-    default_img = "https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=1000&auto=format&fit=crop"
-    img_src = recipe['thumbnail_url'] if recipe['thumbnail_url'] else default_img
-
-    col1, col2, col3 = st.columns([2, 2, 2], gap="large")
+    st.markdown(f"<div class='detail-title'>{row['baslik'].title()}</div>", unsafe_allow_html=True)
+    
+    col1, col2 = st.columns([1, 1], gap="large")
     with col1:
-        st.markdown(f"""
-        <a href="{recipe['url']}" target="_blank" title="Instagram'da gör">
-            <div class="detail-card">
-                <img src="{img_src}" alt="{recipe['baslik']}" onerror="this.onerror=null; this.src='{default_img}';">
-            </div>
-        </a>
-        """, unsafe_allow_html=True)
-
+        st.image(row.get('thumbnail_url', ''), use_column_width=True, output_format="JPEG")
+        st.markdown(f"### 🔗 [Instagram'da Görüntüle]({row['url']})")
+        
+        if type == "recipe":
+            st.info(f"⏱️ Süre: {row['hazirlanma_suresi']} dk | 🔥 Zorluk: {row['yemek_zorlugu']}")
+        else:
+            st.info(f"📍 Konum: {row['konum']} | ⭐ Puan: {row['puan']}/10")
+            
     with col2:
-        st.markdown(f"""<div class="detail-card"><h5>Malzemeler</h5><div class="detail-card-text">{recipe.get('malzemeler', 'Eklenmemiş')}</div></div>""", unsafe_allow_html=True)
+        st.markdown("### 📝 Detaylar")
+        if type == "recipe":
+            st.markdown(f"**Malzemeler:**\n{row['malzemeler']}")
+            st.markdown("---")
+            st.markdown(f"**Yapılışı:**\n{row['yapilisi']}")
+        else:
+            st.markdown(row['aciklama'])
+            st.markdown(f"**🗓️ Tarih:** {row.get('tarih', '-')}")
 
-    with col3:
-        st.markdown(f"""<div class="detail-card"><h5>Yapılışı</h5><div class="detail-card-text">{recipe.get('yapilisi', 'Eklenmemiş')}</div></div>""", unsafe_allow_html=True)
-    
-    st.markdown("---")
-    with st.expander("🔴 Tarifi Kalıcı Olarak Sil"):
-        st.warning("Bu işlem geri alınamaz.")
-        if st.button("Evet, Bu Tarifi Sil", type="primary", key="delete_confirm_button"):
-            cell = worksheet.find(str(recipe['id']))
-            worksheet.delete_rows(cell.row)
+    # SİLME BUTONU
+    st.write("---")
+    with st.expander("🔴 Kaydı Sil"):
+        if st.button("Evet, Sil", type="primary"):
+            ws = worksheet_recipes if type == "recipe" else worksheet_events
+            cell = ws.find(str(id))
+            ws.delete_rows(cell.row)
             st.cache_data.clear()
-            st.success("Silindi.")
-            time.sleep(2)
-            st.query_params.clear()
-            st.rerun()
+            st.success("Silindi!"); time.sleep(1); st.query_params.clear(); st.rerun()
 
-def show_edit_form(recipe_id, df):
-    recipe_df = df[df['id'].astype(str) == str(recipe_id)]
-    if recipe_df.empty: st.error("Bulunamadı."); st.stop()
-    recipe = recipe_df.iloc[0].to_dict()
-
-    st.markdown(f"<h2>✏️ Tarifi Düzenle: *{recipe['baslik'].title()}*</h2>", unsafe_allow_html=True)
-    with st.form("edit_recipe_form"):
-        edit_insta_url = st.text_input("Instagram Reel Linki", value=recipe['url'])
-        edit_baslik = st.text_input("Tarif Başlığı", value=recipe['baslik'].title())
+# --- EKLEME SAYFALARI ---
+def page_add_recipe():
+    st.markdown("## 🍳 Yeni Tarif Ekle")
+    with st.form("add_recipe"):
+        c1, c2 = st.columns(2)
+        with c1:
+            url = st.text_input("Instagram Linki")
+            baslik = st.text_input("Başlık")
+            kat = st.selectbox("Kategori", ["Ana Yemek", "Tatlı", "Kahvaltılık", "Çorba", "Salata", "Atıştırmalık"])
+            zorluk = st.select_slider("Zorluk", ["Basit", "Orta", "Zor"])
+            sure = st.number_input("Süre (dk)", 30)
+        with c2:
+            malz = st.text_area("Malzemeler", height=150)
+            yap = st.text_area("Yapılışı", height=150)
         
-        kategori_options = sorted(df['kategori'].unique())
-        try:
-            kategori_index = kategori_options.index(recipe['kategori'])
-        except:
-            kategori_index = 0
+        if st.form_submit_button("Kaydet", use_container_width=True):
+            if not url or not baslik: st.warning("Link ve Başlık zorunludur."); return
             
-        edit_kategori = st.selectbox("Kategori", options=kategori_options, index=kategori_index)
-        
-        zorluk_options = ["Basit", "Orta", "Zor"]
-        try:
-            zorluk_index = zorluk_options.index(recipe.get('yemek_zorlugu'))
-        except:
-            zorluk_index = 0
-            
-        edit_yemek_zorlugu = st.selectbox("Yemek Zorluğu", options=zorluk_options, index=zorluk_index)
-        edit_hazirlanma_suresi = st.number_input("Süre (dk)", min_value=1, value=int(recipe.get('hazirlanma_suresi', 30)))
-        edit_malzemeler = st.text_area("Malzemeler", value=recipe.get('malzemeler', ''), height=200)
-        edit_yapilisi = st.text_area("Yapılışı", value=recipe.get('yapilisi', ''), height=200)
-        
-        col1, col2 = st.columns(2)
-        with col1: submitted_edit = st.form_submit_button("💾 Kaydet", use_container_width=True)
-        with col2: 
-            if st.form_submit_button("❌ İptal", use_container_width=True):
-                st.session_state.recipe_to_edit_id = None
-                st.rerun()
-                
-        if submitted_edit:
-            try:
-                cell = worksheet.find(str(recipe['id']))
-                header = [h.strip().lower().replace(' ', '_') for h in worksheet.row_values(1)]
-                
-                worksheet.update_cell(cell.row, header.index('baslik') + 1, edit_baslik.title())
-                worksheet.update_cell(cell.row, header.index('url') + 1, edit_insta_url)
-                worksheet.update_cell(cell.row, header.index('kategori') + 1, edit_kategori)
-                worksheet.update_cell(cell.row, header.index('yemek_zorlugu') + 1, edit_yemek_zorlugu)
-                worksheet.update_cell(cell.row, header.index('hazirlanma_suresi') + 1, edit_hazirlanma_suresi)
-                worksheet.update_cell(cell.row, header.index('malzemeler') + 1, edit_malzemeler)
-                worksheet.update_cell(cell.row, header.index('yapilisi') + 1, edit_yapilisi)
-                
-                st.success("Güncellendi!")
-                st.cache_data.clear()
-                st.session_state.recipe_to_edit_id = None
-                time.sleep(1)
-                st.rerun()
-            except Exception as e:
-                st.error(f"Hata: {e}")
+            with st.spinner("Kaydediliyor..."):
+                img = get_instagram_thumbnail(url) or "https://images.unsplash.com/photo-1495521821757-a1efb6729352"
+                row = [datetime.now().strftime("%Y%m%d%H%M%S"), url, baslik, yap, malz, kat, datetime.now().strftime("%Y-%m-%d"), img, zorluk, sure, "HAYIR"]
+                worksheet_recipes.append_row(row)
+                st.cache_data.clear(); st.success("Eklendi!"); time.sleep(1); st.session_state.page="home"; st.rerun()
 
-# --- ANA SAYFA ---
-def show_main_page():
-    st.markdown("""<header><h1> Ceren'in Defteri </h1></header>""", unsafe_allow_html=True)
+def page_add_event():
+    if not worksheet_events:
+        st.error("⚠️ Google Sheet dosyanızda 'Etkinlikler' sayfası bulunamadı. Lütfen oluşturun.")
+        return
+
+    st.markdown("## 🎉 Yeni Etkinlik / Mekan Ekle")
+    with st.form("add_event"):
+        c1, c2 = st.columns(2)
+        with c1:
+            url = st.text_input("Instagram Linki (Reel/Post)")
+            baslik = st.text_input("Etkinlik/Mekan Adı")
+            konum = st.text_input("Konum (Semt/Şehir)")
+            kat = st.selectbox("Tür", ["Mekan Keşfi", "Konser", "Gezi", "Tiyatro", "Sergi", "Diğer"])
+        with c2:
+            aciklama = st.text_area("Açıklama / Notlar", height=150)
+            puan = st.slider("Puanım", 1, 10, 8)
+            tarih_inp = st.date_input("Gidilen Tarih")
+        
+        if st.form_submit_button("Kaydet", use_container_width=True):
+            if not url or not baslik: st.warning("Link ve Başlık zorunludur."); return
+            
+            with st.spinner("Kaydediliyor..."):
+                img = get_instagram_thumbnail(url) or "https://images.unsplash.com/photo-1492684223066-81342ee5ff30"
+                row = [datetime.now().strftime("%Y%m%d%H%M%S"), url, baslik, aciklama, konum, kat, str(tarih_inp), img, puan]
+                worksheet_events.append_row(row)
+                st.cache_data.clear(); st.success("Eklendi!"); time.sleep(1); st.session_state.page="home"; st.rerun()
+
+# --- ANA UYGULAMA ---
+def main():
+    if 'page' not in st.session_state: st.session_state.page = "home"
     
-    all_recipes_df = fetch_all_recipes()
+    # Query Params Kontrolü (Linkten geliyorsa)
+    qp = st.query_params
+    if "id" in qp and "type" in qp:
+        show_detail(qp["id"], qp["type"])
+        return
+
+    # Sayfa Yönlendirmeleri
+    if st.session_state.page == "add_recipe":
+        if st.button("⬅️ İptal"): st.session_state.page = "home"; st.rerun()
+        page_add_recipe()
+        return
+    elif st.session_state.page == "add_event":
+        if st.button("⬅️ İptal"): st.session_state.page = "home"; st.rerun()
+        page_add_event()
+        return
+
+    # Ana Sayfa Akışı
+    st.markdown("<header><h1>Ceren'in Defteri</h1></header>", unsafe_allow_html=True)
     
-    selected_page = option_menu(
-        menu_title=None, 
-        options=["Tüm Tarifler", "⭐ Favorilerim", "Ne Pişirsem?", "Yeni Tarif Ekle"],
-        icons=['card-list', 'star-fill', 'lightbulb', 'plus-circle'], 
-        menu_icon="cast", 
-        default_index=0, 
-        orientation="horizontal"
-    )
+    # Menü ve Filtreler
+    search, f_cat, f_time = build_sidebar()
+    
+    selected = option_menu(None, ["Tarifler", "Etkinlikler", "Favoriler"], 
+        icons=['egg-fried', 'ticket-perforated', 'star'], 
+        menu_icon="cast", default_index=0, orientation="horizontal",
+        styles={"nav-link-selected": {"background-color": "#8BC34A"}})
+    
+    st.session_state.active_tab = selected # Filtreler için aktif sekmeyi kaydet
 
-    if selected_page == "Tüm Tarifler":
-        filtered_recipes = build_sidebar(all_recipes_df)
-        display_recipe_cards_final(filtered_recipes.sort_values(by='id', ascending=False))
-
-    elif selected_page == "⭐ Favorilerim":
-        st.markdown("<h2>⭐ Favori Tariflerim</h2>", unsafe_allow_html=True)
-        if not all_recipes_df.empty:
-            favorites_df = all_recipes_df[all_recipes_df['favori'] == 'EVET']
-            display_recipe_cards_final(favorites_df.sort_values(by='id', ascending=False))
-
-    elif selected_page == "Ne Pişirsem?":
-        st.markdown("<h2>Ne Pişirsem?</h2>", unsafe_allow_html=True)
-        search = st.text_input("Malzeme Ara...")
-        selected_ings = []
-        for cat, ings in CATEGORIZED_INGREDIENTS.items():
-            to_show = [i for i in ings if search.lower() in i.lower()] if search else ings
-            if to_show:
-                with st.expander(cat, expanded=bool(search)):
-                    cols = st.columns(4)
-                    for i, ing in enumerate(to_show):
-                        with cols[i%4]:
-                            if st.checkbox(ing, key=f"ing_{ing}"): selected_ings.append(ing)
-                            
-        if st.button("🧑‍🍳 Tarif Bul", use_container_width=True) and selected_ings:
-             filtered = all_recipes_df.copy()
-             for ing in selected_ings: 
-                 filtered = filtered[filtered['malzemeler'].str.contains(ing.lower(), case=False, na=False)]
-             display_recipe_cards_final(filtered)
-
-    elif selected_page == "Yeni Tarif Ekle":
-        st.markdown("<h2>Yeni Bir Tarif Ekle</h2>", unsafe_allow_html=True)
-        with st.form("new_recipe_page_form", clear_on_submit=True):
-            col1, col2 = st.columns(2)
-            with col1:
-                insta_url = st.text_input("Instagram Reel Linki")
-                tarif_basligi = st.text_input("Tarif Başlığı")
-                kategori = st.selectbox("Kategori", ["Ana Yemek", "Tatlı", "Kahvaltılık", "Çorba", "Salata", "Atıştırmalık"])
-                yemek_zorlugu = st.selectbox("Zorluk", ["Basit", "Orta", "Zor"])
-                hazirlanma_suresi = st.number_input("Süre (dk)", min_value=1, value=30)
-                
-            with col2:
-                malzemeler = st.text_area("Malzemeler", height=150)
-                yapilisi = st.text_area("Yapılışı", height=150)
-
-            submitted_add = st.form_submit_button("✨ Tarifi Kaydet", use_container_width=True)
+    if selected == "Tarifler":
+        df = fetch_data("recipes")
+        if not df.empty:
+            if search: df = df[df['baslik'].str.contains(search, case=False, na=False)]
+            if f_cat: df = df[df['kategori'].isin(f_cat)]
+            df = df[df['hazirlanma_suresi'].between(f_time[0], f_time[1])]
+            display_cards(df.sort_values('id', ascending=False), "recipe")
             
-            if submitted_add:
-                if insta_url and tarif_basligi:
-                    with st.spinner("Kaydediliyor..."):
-                        thumbnail_url = get_instagram_thumbnail(insta_url)
-                        if not thumbnail_url:
-                            thumbnail_url = "https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=1000&auto=format&fit=crop"
-                        
-                        new_row = [
-                            datetime.now().strftime("%Y%m%d%H%M%S"), 
-                            insta_url, 
-                            tarif_basligi.title(), 
-                            yapilisi, 
-                            malzemeler, 
-                            kategori, 
-                            datetime.now().strftime("%Y-%m-%d"), 
-                            thumbnail_url, 
-                            yemek_zorlugu, 
-                            hazirlanma_suresi, 
-                            "HAYIR"
-                        ]
-                        
-                        try:
-                            worksheet.append_row(new_row, value_input_option='USER_ENTERED')
-                            st.cache_data.clear()
-                            st.success("Tarif başarıyla kaydedildi!")
-                            time.sleep(1)
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"Hata: {e}")
-                else: st.warning("Lütfen Link ve Başlık girin.")
+    elif selected == "Etkinlikler":
+        if not worksheet_events:
+            st.warning("Henüz etkinlik veritabanı oluşturulmamış. Google Sheet'te 'Etkinlikler' sayfasını açın.")
+        else:
+            df = fetch_data("events")
+            if not df.empty:
+                if search: df = df[df['baslik'].str.contains(search, case=False, na=False)]
+                if f_cat: df = df[df['kategori'].isin(f_cat)]
+                display_cards(df.sort_values('id', ascending=False), "event")
+            else:
+                st.info("Henüz hiç etkinlik eklenmemiş. Yanda '🎉 Etkinlik' butonuna basarak ekle!")
+                
+    elif selected == "Favoriler":
+        df = fetch_data("recipes")
+        if not df.empty:
+            favs = df[df['favori'] == 'EVET']
+            display_cards(favs, "recipe")
 
-# --- ROUTER ---
-if 'recipe_to_edit_id' not in st.session_state: st.session_state.recipe_to_edit_id = None
-all_recipes_df = fetch_all_recipes()
-
-if st.session_state.recipe_to_edit_id: show_edit_form(st.session_state.recipe_to_edit_id, all_recipes_df)
-elif "id" in st.query_params: show_recipe_detail(st.query_params.get("id"), all_recipes_df)
-else: show_main_page()
+if __name__ == "__main__":
+    main()
