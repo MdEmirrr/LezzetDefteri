@@ -4,7 +4,6 @@ import pandas as pd
 from google.oauth2.service_account import Credentials
 from datetime import datetime
 import requests
-from bs4 import BeautifulSoup
 import html
 from streamlit_option_menu import option_menu
 import json
@@ -14,6 +13,7 @@ import time
 # --- GÖRSEL AYARLAR VE STİL ---
 st.set_page_config(page_title="Ceren'in Defteri", layout="wide")
 
+# BU KISIM HATAYI ÇÖZEN KISIMDIR (st.markdown İLE BAŞLAMASI ŞART)
 st.markdown(f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap');
@@ -96,12 +96,12 @@ div[data-testid="stHeading"] {{ display: none; }}
 .stButton > button:hover {{ background-color: #7CB342; }}
 
 /* Form stilleri */
-.stTextInput>div>div>input, .stSelectbox>div>div, .stTextArea>div>div>textarea, .stNumberInput>div>div>input {
+.stTextInput>div>div>input, .stSelectbox>div>div, .stTextArea>div>div>textarea, .stNumberInput>div>div>input {{
     background-color: var(--card-bg-color);
     border: 1px solid var(--border-light);
     border-radius: 8px;
     color: var(--text-dark);
-}
+}}
 
 .detail-page-title {{ font-family: 'Dancing Script', cursive !important; font-size: 3.5rem; text-align: center; margin-bottom: 1rem; color: var(--text-dark); }}
 .detail-card {{ padding: 1.5rem; height: 100%; background-color: var(--card-bg-color); border-radius: 12px; border: 1px solid var(--border-light); }}
@@ -118,7 +118,7 @@ try:
     creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=scopes)
     gc = gspread.authorize(creds)
     
-    # ID ile bağlanmayı deneyelim (daha garanti), yoksa isimle
+    # ID ile bağlanmayı deneyelim
     if "spreadsheet_id" in st.secrets:
         spreadsheet = gc.open_by_key(st.secrets["spreadsheet_id"])
     else:
@@ -158,8 +158,6 @@ def fetch_all_recipes():
         return pd.DataFrame()
 
 def get_instagram_thumbnail(url):
-    # Instagram artık veri çekmeye çok kapalı olduğu için burası sıkıntı çıkarabilir.
-    # Yine de deniyoruz, hata verirse None dönüyoruz.
     try:
         headers = {'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 13_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1.1 Mobile/15E148 Safari/604.1'}
         response = requests.get(url, headers=headers, timeout=10)
@@ -210,14 +208,12 @@ def display_recipe_cards_final(df):
     st.markdown(f"**{len(df)}** adet tarif bulundu.")
     st.write("---")
     
-    # Varsayılan resim (Eğer resim yoksa veya yüklenmezse bu çıkacak)
     default_img = "https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=1000&auto=format&fit=crop"
     
     cols = st.columns(4)
     for i, recipe in enumerate(df.to_dict('records')):
         col = cols[i % 4]
         with col:
-            # onerror kısmı: Resim yüklenemezse (403/404) varsayılan resmi koyar.
             img_src = recipe['thumbnail_url'] if recipe['thumbnail_url'] else default_img
             
             st.markdown(f"""
@@ -397,10 +393,8 @@ def show_main_page():
             if submitted_add:
                 if insta_url and tarif_basligi:
                     with st.spinner("Kaydediliyor..."):
-                        # Fotoğrafı almaya çalış, alamazsa boş geç
                         thumbnail_url = get_instagram_thumbnail(insta_url)
                         if not thumbnail_url:
-                            # Varsayılan şık bir görsel
                             thumbnail_url = "https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=1000&auto=format&fit=crop"
                         
                         new_row = [
